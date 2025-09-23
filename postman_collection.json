@@ -1,0 +1,580 @@
+{
+	"info": {
+		"_postman_id": "carteira-financeira-api",
+		"name": "Carteira Financeira API",
+		"description": "API para sistema de carteira financeira com operações de depósito, transferência e reversão de transações",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Autenticação",
+			"item": [
+				{
+					"name": "Registrar Usuário",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"name\": \"João Silva\",\n    \"email\": \"joao@example.com\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/register",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"register"
+							]
+						},
+						"description": "Registra um novo usuário no sistema"
+					},
+					"response": []
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.success && response.data.token) {",
+									"        pm.environment.set('token', response.data.token);",
+									"        pm.environment.set('user_id', response.data.user.id);",
+									"        console.log('Token salvo:', response.data.token);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"joao@example.com\",\n    \"password\": \"password123\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/auth/login",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"login"
+							]
+						},
+						"description": "Faz login e retorna o token de autenticação"
+					},
+					"response": []
+				},
+				{
+					"name": "Logout",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/auth/logout",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"logout"
+							]
+						},
+						"description": "Faz logout e invalida o token"
+					},
+					"response": []
+				},
+				{
+					"name": "Meu Perfil",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/auth/me",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"auth",
+								"me"
+							]
+						},
+						"description": "Retorna os dados do usuário autenticado"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints de autenticação"
+		},
+		{
+			"name": "Carteira",
+			"item": [
+				{
+					"name": "Consultar Saldo",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/wallet/balance",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"wallet",
+								"balance"
+							]
+						},
+						"description": "Consulta o saldo da carteira do usuário"
+					},
+					"response": []
+				},
+				{
+					"name": "Depósito",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": 100.50,\n    \"description\": \"Depósito inicial\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/wallet/deposit",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"wallet",
+								"deposit"
+							]
+						},
+						"description": "Realiza um depósito na carteira"
+					},
+					"response": []
+				},
+				{
+					"name": "Saque",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"amount\": 50.00,\n    \"description\": \"Saque para pagamento\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/wallet/withdraw",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"wallet",
+								"withdraw"
+							]
+						},
+						"description": "Realiza um saque da carteira"
+					},
+					"response": []
+				},
+				{
+					"name": "Transferência",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"to_user_id\": 2,\n    \"amount\": 25.75,\n    \"description\": \"Transferência para amigo\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/wallet/transfer",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"wallet",
+								"transfer"
+							]
+						},
+						"description": "Realiza uma transferência para outro usuário"
+					},
+					"response": []
+				},
+				{
+					"name": "Histórico de Transações",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/wallet/history?page=1&per_page=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"wallet",
+								"history"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "per_page",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Consulta o histórico de transações da carteira"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints de operações da carteira"
+		},
+		{
+			"name": "Transações",
+			"item": [
+				{
+					"name": "Solicitar Reversão",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.success && response.data.reversal_id) {",
+									"        pm.environment.set('reversal_id', response.data.reversal_id);",
+									"        console.log('Reversal ID salvo:', response.data.reversal_id);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"transaction_id\": 1,\n    \"reason\": \"Erro no valor\",\n    \"description\": \"O valor da transação estava incorreto\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/transactions/reversal/request",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"transactions",
+								"reversal",
+								"request"
+							]
+						},
+						"description": "Solicita a reversão de uma transação"
+					},
+					"response": []
+				},
+				{
+					"name": "Aprovar Reversão",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"description\": \"Reversão aprovada após análise\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/transactions/reversal/{{reversal_id}}/approve",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"transactions",
+								"reversal",
+								"{{reversal_id}}",
+								"approve"
+							]
+						},
+						"description": "Aprova uma solicitação de reversão"
+					},
+					"response": []
+				},
+				{
+					"name": "Rejeitar Reversão",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"description\": \"Reversão rejeitada - transação válida\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/transactions/reversal/{{reversal_id}}/reject",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"transactions",
+								"reversal",
+								"{{reversal_id}}",
+								"reject"
+							]
+						},
+						"description": "Rejeita uma solicitação de reversão"
+					},
+					"response": []
+				},
+				{
+					"name": "Reversões Pendentes",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/transactions/reversals/pending",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"transactions",
+								"reversals",
+								"pending"
+							]
+						},
+						"description": "Lista as reversões pendentes de aprovação"
+					},
+					"response": []
+				},
+				{
+					"name": "Histórico de Reversões",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Accept",
+								"value": "application/json"
+							}
+						],
+						"url": {
+							"raw": "{{base_url}}/api/transactions/reversals/history?page=1&per_page=10",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"transactions",
+								"reversals",
+								"history"
+							],
+							"query": [
+								{
+									"key": "page",
+									"value": "1"
+								},
+								{
+									"key": "per_page",
+									"value": "10"
+								}
+							]
+						},
+						"description": "Consulta o histórico de reversões"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints de gerenciamento de transações e reversões"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		}
+	]
+}
+
