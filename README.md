@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Sistema de Carteira Financeira
 
 Sistema completo de carteira financeira desenvolvido em Laravel 12 com PHP 8.2, MySQL e Docker. Permite que usuários realizem operações de depósito, saque, transferência e reversão de transações com total segurança e auditoria.
@@ -228,3 +229,6 @@ Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para ma
 - 📧 **Email**: nathan.ads.100@gmail.com
 - 🚀 **Desenvolvedor Full Stack**
 
+=======
+# api-carteira-financeira
+>>>>>>> 842373fce101086609351db57a4be06c10f475b0
