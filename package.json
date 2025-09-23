@@ -3,7 +3,7 @@
     "name": "api-carteira-financeira",
     "version": "1.0.0",
     "description": "Sistema completo de carteira financeira com Laravel - API RESTful",
-    "author": "Nathan Silva <nathan.ads.100@gmail.com>",
+    "author": "nathanjsilva <nathan.ads.100@gmail.com>",
     "private": true,
     "type": "module",
     "scripts": {

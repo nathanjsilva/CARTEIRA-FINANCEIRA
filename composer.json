@@ -1,13 +1,13 @@
 {
     "$schema": "https://getcomposer.org/schema.json",
-    "name": "nathan-santos/api-carteira-financeira",
+    "name": "nathanjsilva/api-carteira-financeira",
     "type": "project",
     "description": "Sistema completo de carteira financeira com Laravel - API RESTful para operações de depósito, saque, transferência e reversão de transações.",
     "keywords": ["laravel", "api", "financeiro", "carteira", "transações", "reversão"],
     "license": "MIT",
     "authors": [
         {
-            "name": "Nathan Silva",
+            "name": "nathanjsilva",
             "email": "nathan.ads.100@gmail.com",
             "role": "Developer"
         }
