@@ -4,55 +4,47 @@ namespace App\Domain\ValueObjects;
 
 final class Money
 {
-    private function __construct(private readonly float $amount)
-    {
-        if ($amount < 0) {
-            throw new \DomainException('Money cannot be negative');
-        }
-    }
+    private function __construct(private readonly int $cents) {}
 
     public static function of(float $amount): self
     {
-        return new self(round($amount, 2));
+        $cents = (int) round($amount * 100);
+        if ($cents < 0) {
+            throw new \DomainException("O valor monetário não pode ser negativo: R$ {$amount}");
+        }
+        return new self($cents);
     }
 
-    public static function zero(): self
+    /** Permite saldo negativo — usar apenas ao carregar do banco. */
+    public static function ofBalance(float $amount): self
     {
-        return new self(0);
+        return new self((int) round($amount * 100));
     }
 
-    public function add(Money $other): Money
+    public static function zero(): self { return new self(0); }
+
+    public function add(Money $other): self
     {
-        return Money::of($this->amount + $other->amount);
+        return new self($this->cents + $other->cents);
     }
 
-    public function subtract(Money $other): Money
+    public function subtract(Money $other): self
     {
-        return Money::of($this->amount - $other->amount);
+        $result = $this->cents - $other->cents;
+        if ($result < 0) {
+            throw new \DomainException('Operação resultaria em saldo negativo');
+        }
+        return new self($result);
     }
 
-    public function isGreaterOrEqual(Money $other): bool
-    {
-        return $this->amount >= $other->amount;
-    }
-
-    public function isGreaterThan(Money $other): bool
-    {
-        return $this->amount > $other->amount;
-    }
-
-    public function equals(Money $other): bool
-    {
-        return $this->amount === $other->amount;
-    }
-
-    public function getAmount(): float
-    {
-        return $this->amount;
-    }
-
+    public function isGreaterOrEqual(Money $other): bool { return $this->cents >= $other->cents; }
+    public function isGreaterThan(Money $other): bool    { return $this->cents > $other->cents; }
+    public function isNegative(): bool                   { return $this->cents < 0; }
+    public function equals(Money $other): bool           { return $this->cents === $other->cents; }
+    public function getCents(): int                      { return $this->cents; }
+    public function getAmount(): float                   { return $this->cents / 100; }
     public function format(): string
     {
-        return number_format($this->amount, 2, ',', '.');
+        return 'R$ ' . number_format($this->getAmount(), 2, ',', '.');
     }
 }

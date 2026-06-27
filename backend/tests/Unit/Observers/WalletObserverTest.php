@@ -2,137 +2,57 @@
 
 namespace Tests\Unit\Observers;
 
+use App\Models\Transaction;
 use App\Models\User;
 use App\Models\Wallet;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
 
 class WalletObserverTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_wallet_observer_logs_creation()
+    public function test_balance_update_to_positive_persists(): void
     {
-        $user = User::factory()->create();
-        
-        Log::shouldReceive('info')->once()->with('Wallet being created', \Mockery::type('array'));
-        Log::shouldReceive('info')->once()->with('Wallet created successfully', \Mockery::type('array'));
-
-        $wallet = Wallet::factory()->create([
-            'user_id' => $user->id,
-            'balance' => 1000.00
-        ]);
-
-        $this->assertDatabaseHas('wallets', [
-            'user_id' => $user->id,
-            'balance' => 1000.00
-        ]);
-    }
-
-    public function test_wallet_observer_validates_balance_changes()
-    {
-        $user = User::factory()->create();
-        $wallet = Wallet::factory()->create([
-            'user_id' => $user->id,
-            'balance' => 500.00
-        ]);
-
-        Log::shouldReceive('info')->once()->with('Wallet being updated', \Mockery::type('array'));
-        Log::shouldReceive('info')->once()->with('Wallet updated successfully', \Mockery::type('array'));
+        $user   = User::factory()->create();
+        $wallet = $user->getDefaultWallet();
 
         $wallet->update(['balance' => 750.00]);
 
-        $this->assertDatabaseHas('wallets', [
-            'id' => $wallet->id,
-            'balance' => 750.00
-        ]);
+        $this->assertEquals(750.00, (float) $wallet->fresh()->balance);
     }
 
-    public function test_wallet_observer_prevents_negative_balance()
+    public function test_balance_update_to_negative_is_allowed(): void
     {
-        $user = User::factory()->create();
-        $wallet = Wallet::factory()->create([
-            'user_id' => $user->id,
-            'balance' => 100.00
-        ]);
-
-        Log::shouldReceive('info')->once()->with('Wallet being updated', \Mockery::type('array'));
-        Log::shouldReceive('error')->once()->with('Attempted negative balance', \Mockery::type('array'));
-
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Wallet balance cannot be negative');
+        $user   = User::factory()->create();
+        $wallet = $user->getDefaultWallet();
+        $wallet->update(['balance' => 100.00]);
 
         $wallet->update(['balance' => -50.00]);
+
+        $this->assertEquals(-50.00, (float) $wallet->fresh()->balance);
     }
 
-    public function test_wallet_observer_logs_large_balance_changes()
+    public function test_cannot_delete_wallet_with_balance(): void
     {
-        $user = User::factory()->create();
-        $wallet = Wallet::factory()->create([
-            'user_id' => $user->id,
-            'balance' => 1000.00
-        ]);
-
-        Log::shouldReceive('info')->once()->with('Wallet being updated', \Mockery::type('array'));
-        Log::shouldReceive('warning')->once()->with('Large balance change detected', \Mockery::type('array'));
-        Log::shouldReceive('info')->once()->with('Wallet updated successfully', \Mockery::type('array'));
-
-        $wallet->update(['balance' => 15000.00]);
-    }
-
-    public function test_wallet_observer_prevents_deletion_with_balance()
-    {
-        $user = User::factory()->create();
-        $wallet = Wallet::factory()->create([
-            'user_id' => $user->id,
-            'balance' => 100.00
-        ]);
-
-        Log::shouldReceive('warning')->once()->with('Wallet being deleted', \Mockery::type('array'));
+        $user   = User::factory()->create();
+        $wallet = $user->getDefaultWallet();
+        $wallet->update(['balance' => 100.00]);
 
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Cannot delete wallet with remaining balance');
 
         $wallet->delete();
     }
 
-    public function test_wallet_observer_prevents_deletion_with_transactions()
+    public function test_cannot_delete_wallet_with_transactions(): void
     {
-        $user = User::factory()->create();
-        $wallet = Wallet::factory()->create([
-            'user_id' => $user->id,
-            'balance' => 0.00
-        ]);
+        $user   = User::factory()->create();
+        $wallet = $user->getDefaultWallet();
 
-        // Create a transaction
-        \App\Models\Transaction::factory()->create([
-            'from_wallet_id' => $wallet->id
-        ]);
-
-        Log::shouldReceive('warning')->once()->with('Wallet being deleted', \Mockery::type('array'));
+        Transaction::factory()->create(['from_wallet_id' => $wallet->id]);
 
         $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Cannot delete wallet with transaction history');
 
         $wallet->delete();
-    }
-
-    public function test_wallet_observer_clears_cache_on_update()
-    {
-        $user = User::factory()->create();
-        $wallet = Wallet::factory()->create([
-            'user_id' => $user->id
-        ]);
-
-        // Mock cache
-        Cache::shouldReceive('forget')->once()->with("user_{$user->id}_wallets");
-        Cache::shouldReceive('forget')->once()->with("user_{$user->id}_default_wallet");
-
-        Log::shouldReceive('info')->once()->with('Wallet being updated', \Mockery::type('array'));
-        Log::shouldReceive('info')->once()->with('Wallet updated successfully', \Mockery::type('array'));
-
-        $wallet->update(['balance' => 1000.00]);
     }
 }

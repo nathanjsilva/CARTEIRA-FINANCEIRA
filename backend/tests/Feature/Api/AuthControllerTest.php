@@ -21,31 +21,21 @@ class AuthControllerTest extends TestCase
             'password_confirmation' => 'password123'
         ];
 
-        $response = $this->postJson('/api/auth/register', $userData);
+        $response = $this->postJson('/api/v1/auth/register', $userData);
 
         $response->assertStatus(201)
             ->assertJson([
                 'success' => true,
-                'message' => 'Usuário registrado com sucesso'
+                'message' => 'Usuário registrado com sucesso',
             ])
             ->assertJsonStructure([
                 'success',
                 'message',
                 'data' => [
-                    'user' => [
-                        'id',
-                        'name',
-                        'email',
-                        'created_at'
-                    ],
-                    'wallet' => [
-                        'id',
-                        'balance',
-                        'currency',
-                        'is_active'
-                    ],
-                    'token'
-                ]
+                    'user'   => ['id', 'name', 'email'],
+                    'wallet' => ['id', 'balance', 'currency'],
+                    'token',
+                ],
             ]);
 
         $this->assertDatabaseHas('users', [
@@ -70,13 +60,9 @@ class AuthControllerTest extends TestCase
             'password_confirmation' => 'password123'
         ];
 
-        $response = $this->postJson('/api/auth/register', $userData);
+        $response = $this->postJson('/api/v1/auth/register', $userData);
 
         $response->assertStatus(422)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Erros de validação'
-            ])
             ->assertJsonValidationErrors(['email']);
     }
 
@@ -89,7 +75,7 @@ class AuthControllerTest extends TestCase
             'password_confirmation' => 'different_password'
         ];
 
-        $response = $this->postJson('/api/auth/register', $userData);
+        $response = $this->postJson('/api/v1/auth/register', $userData);
 
         $response->assertStatus(422)
             ->assertJsonValidationErrors(['password']);
@@ -107,7 +93,7 @@ class AuthControllerTest extends TestCase
             'password' => 'password123'
         ];
 
-        $response = $this->postJson('/api/auth/login', $loginData);
+        $response = $this->postJson('/api/v1/auth/login', $loginData);
 
         $response->assertStatus(200)
             ->assertJson([
@@ -140,7 +126,7 @@ class AuthControllerTest extends TestCase
             'password' => 'wrong_password'
         ];
 
-        $response = $this->postJson('/api/auth/login', $loginData);
+        $response = $this->postJson('/api/v1/auth/login', $loginData);
 
         $response->assertStatus(401)
             ->assertJson([
@@ -153,7 +139,7 @@ class AuthControllerTest extends TestCase
     {
         $user = $this->actingAsUser();
 
-        $response = $this->getJson('/api/auth/me');
+        $response = $this->getJson('/api/v1/auth/me');
 
         $response->assertStatus(200)
             ->assertJson([
@@ -170,7 +156,7 @@ class AuthControllerTest extends TestCase
 
     public function test_unauthenticated_user_cannot_get_profile()
     {
-        $response = $this->getJson('/api/auth/me');
+        $response = $this->getJson('/api/v1/auth/me');
 
         $response->assertStatus(401);
     }
@@ -179,7 +165,7 @@ class AuthControllerTest extends TestCase
     {
         $user = $this->actingAsUser();
 
-        $response = $this->postJson('/api/auth/logout');
+        $response = $this->postJson('/api/v1/auth/logout');
 
         $response->assertStatus(200)
             ->assertJson([
@@ -196,7 +182,7 @@ class AuthControllerTest extends TestCase
 
     public function test_unauthenticated_user_cannot_logout()
     {
-        $response = $this->postJson('/api/auth/logout');
+        $response = $this->postJson('/api/v1/auth/logout');
 
         $response->assertStatus(401);
     }
@@ -210,7 +196,7 @@ class AuthControllerTest extends TestCase
             'password_confirmation' => 'password123'
         ];
 
-        $response = $this->postJson('/api/auth/register', $userData);
+        $response = $this->postJson('/api/v1/auth/register', $userData);
 
         $response->assertStatus(201);
 

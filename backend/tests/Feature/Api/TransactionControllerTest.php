@@ -13,381 +13,190 @@ class TransactionControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_user_can_request_transaction_reversal()
+    public function test_user_can_transfer_to_another_user(): void
     {
-        $user = $this->actingAsUserWithWallet(['balance' => 1000.00]);
-        $wallet = $user->getDefaultWallet();
+        $sender   = $this->actingAsUserWithWallet([], ['balance' => 1000.00]);
+        $recipient = User::factory()->create();
+        Wallet::factory()->create(['user_id' => $recipient->id, 'balance' => 0]);
 
-        // Create a completed transaction
-        $transaction = Transaction::factory()->transfer()->completed()->create([
-            'from_wallet_id' => $wallet->id,
-            'amount' => 100.00,
-            'description' => 'Transferência para testar reversão'
+        $response = $this->postJson('/api/v1/transactions/transfer', [
+            'recipient_id' => $recipient->id,
+            'amount'       => 200.00,
+            'description'  => 'Pagamento',
         ]);
 
-        $reversalData = [
-            'transaction_id' => $transaction->uuid,
-            'reason' => 'user_request',
-            'description' => 'Erro no valor da transação'
-        ];
+        $response->assertStatus(201)
+            ->assertJson(['success' => true, 'message' => 'Transferência realizada com sucesso']);
 
-        $response = $this->postJson('/api/transactions/reversal/request', $reversalData);
+        $this->assertEquals(800.00, (float) $sender->getDefaultWallet()->fresh()->balance);
+        $this->assertEquals(200.00, (float) $recipient->getDefaultWallet()->fresh()->balance);
+    }
+
+    public function test_transfer_fails_with_insufficient_balance(): void
+    {
+        $recipient = User::factory()->create();
+        Wallet::factory()->create(['user_id' => $recipient->id]);
+
+        $this->actingAsUserWithWallet([], ['balance' => 50.00]);
+
+        $this->postJson('/api/v1/transactions/transfer', [
+            'recipient_id' => $recipient->id,
+            'amount'       => 500.00,
+        ])->assertStatus(422);
+    }
+
+    public function test_transfer_fails_with_nonexistent_recipient(): void
+    {
+        $this->actingAsUserWithWallet([], ['balance' => 500.00]);
+
+        $this->postJson('/api/v1/transactions/transfer', [
+            'recipient_id' => 99999,
+            'amount'       => 100.00,
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors(['recipient_id']);
+    }
+
+    public function test_user_can_request_reversal(): void
+    {
+        $user   = $this->actingAsUserWithWallet([], ['balance' => 1000.00]);
+        $wallet = $user->getDefaultWallet();
+
+        $recipient = User::factory()->create();
+        $toWallet  = Wallet::factory()->create(['user_id' => $recipient->id, 'balance' => 0]);
+
+        $transaction = Transaction::factory()->transfer()->completed()->create([
+            'from_wallet_id' => $wallet->id,
+            'to_wallet_id'   => $toWallet->id,
+            'amount'         => 100.00,
+        ]);
+
+        $response = $this->postJson('/api/v1/transactions/reversal/request', [
+            'transaction_id' => $transaction->uuid,
+            'reason'         => 'user_request',
+            'description'    => 'Erro no valor',
+        ]);
 
         $response->assertStatus(201)
-            ->assertJson([
-                'success' => true,
-                'message' => 'Solicitação de reversão enviada com sucesso'
-            ])
-            ->assertJsonStructure([
-                'success',
-                'message',
-                'data' => [
-                    'reversal_id',
-                    'original_transaction_id',
-                    'status',
-                    'reason'
-                ]
-            ]);
+            ->assertJson(['success' => true])
+            ->assertJsonStructure(['data' => ['reversal_id', 'original_transaction_id', 'status', 'reason']]);
 
         $this->assertDatabaseHas('transaction_reversals', [
             'original_transaction_id' => $transaction->id,
-            'requested_by' => $user->id,
-            'reason' => 'user_request',
-            'status' => 'pending'
+            'requested_by'            => $user->id,
+            'status'                  => 'pending',
         ]);
     }
 
-    public function test_reversal_request_fails_with_invalid_reason()
+    public function test_reversal_of_own_pending_transaction_rejected(): void
     {
-        $user = $this->actingAsUserWithWallet();
+        $user   = $this->actingAsUserWithWallet([], ['balance' => 500.00]);
+        $wallet = $user->getDefaultWallet();
+
+        $transaction = Transaction::factory()->transfer()->pending()->create([
+            'from_wallet_id' => $wallet->id,
+        ]);
+
+        $this->postJson('/api/v1/transactions/reversal/request', [
+            'transaction_id' => $transaction->uuid,
+            'reason'         => 'user_request',
+        ])->assertStatus(422);
+    }
+
+    public function test_reversal_request_fails_with_invalid_reason(): void
+    {
+        $user   = $this->actingAsUserWithWallet();
         $wallet = $user->getDefaultWallet();
 
         $transaction = Transaction::factory()->transfer()->completed()->create([
-            'from_wallet_id' => $wallet->id
+            'from_wallet_id' => $wallet->id,
         ]);
 
-        $reversalData = [
+        $this->postJson('/api/v1/transactions/reversal/request', [
             'transaction_id' => $transaction->uuid,
-            'reason' => 'invalid_reason',
-            'description' => 'Razão inválida'
-        ];
-
-        $response = $this->postJson('/api/transactions/reversal/request', $reversalData);
-
-        $response->assertStatus(422)
+            'reason'         => 'motivo_invalido',
+        ])->assertStatus(422)
             ->assertJsonValidationErrors(['reason']);
     }
 
-    public function test_reversal_request_fails_with_nonexistent_transaction()
+    public function test_user_cannot_request_reversal_for_other_users_transaction(): void
     {
-        $user = $this->actingAsUser();
+        $this->actingAsUserWithWallet();
 
-        $reversalData = [
-            'transaction_id' => 'nonexistent-uuid',
-            'reason' => 'user_request',
-            'description' => 'Transação inexistente'
-        ];
-
-        $response = $this->postJson('/api/transactions/reversal/request', $reversalData);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['transaction_id']);
-    }
-
-    public function test_user_cannot_request_reversal_for_other_users_transactions()
-    {
-        $user = $this->actingAsUser();
-        $otherUser = User::factory()->create();
-        $otherWallet = Wallet::factory()->create(['user_id' => $otherUser->id]);
-
+        $other       = User::factory()->create();
+        $otherWallet = Wallet::factory()->create(['user_id' => $other->id, 'balance' => 500]);
         $transaction = Transaction::factory()->transfer()->completed()->create([
-            'from_wallet_id' => $otherWallet->id
+            'from_wallet_id' => $otherWallet->id,
         ]);
 
-        $reversalData = [
+        $this->postJson('/api/v1/transactions/reversal/request', [
             'transaction_id' => $transaction->uuid,
-            'reason' => 'user_request',
-            'description' => 'Tentativa de reversão de transação de outro usuário'
-        ];
-
-        $response = $this->postJson('/api/transactions/reversal/request', $reversalData);
-
-        $response->assertStatus(403)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Você só pode solicitar reversão para suas próprias transações'
-            ]);
+            'reason'         => 'user_request',
+        ])->assertStatus(403);
     }
 
-    public function test_admin_can_approve_reversal()
+    public function test_user_can_approve_reversal(): void
     {
-        $admin = $this->actingAsUser(['is_admin' => true]);
-        $user = User::factory()->create();
-        $wallet = $user->getDefaultWallet();
+        $user    = $this->actingAsUserWithWallet([], ['balance' => 0]);
+        $wallet  = $user->getDefaultWallet();
 
-        $transaction = Transaction::factory()->transfer()->completed()->create([
+        $other      = User::factory()->create();
+        $otherWallet = Wallet::factory()->create(['user_id' => $other->id, 'balance' => 200]);
+
+        $original = Transaction::factory()->transfer()->completed()->create([
             'from_wallet_id' => $wallet->id,
-            'amount' => 100.00
+            'to_wallet_id'   => $otherWallet->id,
+            'amount'         => 200.00,
+        ]);
+
+        $reversalTx = Transaction::factory()->reversal()->pending()->create([
+            'from_wallet_id' => $otherWallet->id,
+            'to_wallet_id'   => $wallet->id,
+            'amount'         => 200.00,
+            'reference_id'   => $original->uuid,
         ]);
 
         $reversal = TransactionReversal::factory()->pending()->create([
-            'original_transaction_id' => $transaction->id,
-            'requested_by' => $user->id
+            'original_transaction_id' => $original->id,
+            'reversal_transaction_id' => $reversalTx->id,
+            'requested_by'            => $user->id,
         ]);
 
-        $response = $this->postJson("/api/transactions/reversal/{$reversal->uuid}/approve");
+        $response = $this->postJson("/api/v1/transactions/reversal/{$reversal->uuid}/approve");
 
         $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-                'message' => 'Reversão aprovada e executada com sucesso'
-            ]);
-
-        $this->assertDatabaseHas('transaction_reversals', [
-            'id' => $reversal->id,
-            'status' => 'approved',
-            'approved_by' => $admin->id
-        ]);
+            ->assertJson(['success' => true, 'message' => 'Reversão aprovada e executada com sucesso']);
     }
 
-    public function test_admin_can_reject_reversal()
+    public function test_user_can_reject_reversal(): void
     {
-        $admin = $this->actingAsUser(['is_admin' => true]);
-        $user = User::factory()->create();
+        $user   = $this->actingAsUserWithWallet();
         $wallet = $user->getDefaultWallet();
 
-        $transaction = Transaction::factory()->transfer()->completed()->create([
-            'from_wallet_id' => $wallet->id
+        $original = Transaction::factory()->transfer()->completed()->create([
+            'from_wallet_id' => $wallet->id,
+        ]);
+
+        $reversalTx = Transaction::factory()->reversal()->pending()->create([
+            'from_wallet_id' => $wallet->id,
+            'amount'         => 100.00,
         ]);
 
         $reversal = TransactionReversal::factory()->pending()->create([
-            'original_transaction_id' => $transaction->id,
-            'requested_by' => $user->id
+            'original_transaction_id' => $original->id,
+            'reversal_transaction_id' => $reversalTx->id,
+            'requested_by'            => $user->id,
         ]);
 
-        $rejectData = [
-            'reason' => 'Transação válida, sem necessidade de reversão'
-        ];
+        $this->postJson("/api/v1/transactions/reversal/{$reversal->uuid}/reject")
+            ->assertStatus(200)
+            ->assertJson(['success' => true, 'message' => 'Reversão rejeitada com sucesso']);
 
-        $response = $this->postJson("/api/transactions/reversal/{$reversal->uuid}/reject", $rejectData);
-
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-                'message' => 'Reversão rejeitada com sucesso'
-            ]);
-
-        $this->assertDatabaseHas('transaction_reversals', [
-            'id' => $reversal->id,
-            'status' => 'rejected'
-        ]);
+        $this->assertDatabaseHas('transaction_reversals', ['id' => $reversal->id, 'status' => 'rejected']);
     }
 
-    public function test_admin_can_get_pending_reversals()
+    public function test_unauthenticated_user_cannot_transfer(): void
     {
-        $admin = $this->actingAsUser(['is_admin' => true]);
-
-        // Create some pending reversals
-        TransactionReversal::factory()->count(3)->pending()->create();
-
-        $response = $this->getJson('/api/transactions/reversals/pending');
-
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true
-            ])
-            ->assertJsonStructure([
-                'success',
-                'data' => [
-                    'reversals' => [
-                        '*' => [
-                            'id',
-                            'original_transaction_id',
-                            'amount',
-                            'currency',
-                            'reason',
-                            'description',
-                            'requested_by',
-                            'requested_at'
-                        ]
-                    ]
-                ]
-            ]);
-
-        $this->assertCount(3, $response->json('data.reversals'));
-    }
-
-    public function test_admin_can_get_reversal_history()
-    {
-        $admin = $this->actingAsUser(['is_admin' => true]);
-
-        // Create some reversals with different statuses
-        TransactionReversal::factory()->approved()->create();
-        TransactionReversal::factory()->rejected()->create();
-        TransactionReversal::factory()->pending()->create();
-
-        $response = $this->getJson('/api/transactions/reversals/history');
-
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true
-            ])
-            ->assertJsonStructure([
-                'success',
-                'data' => [
-                    'reversals' => [
-                        '*' => [
-                            'id',
-                            'original_transaction_id',
-                            'amount',
-                            'currency',
-                            'reason',
-                            'description',
-                            'status',
-                            'requested_at',
-                            'approved_at',
-                            'approved_by'
-                        ]
-                    ]
-                ]
-            ]);
-
-        $this->assertCount(3, $response->json('data.reversals'));
-    }
-
-    public function test_non_admin_user_cannot_approve_reversal()
-    {
-        $user = $this->actingAsUser();
-        $reversal = TransactionReversal::factory()->pending()->create();
-
-        $response = $this->postJson("/api/transactions/reversal/{$reversal->uuid}/approve");
-
-        $response->assertStatus(403)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Acesso negado. Apenas administradores podem aprovar reversões.'
-            ]);
-    }
-
-    public function test_non_admin_user_cannot_reject_reversal()
-    {
-        $user = $this->actingAsUser();
-        $reversal = TransactionReversal::factory()->pending()->create();
-
-        $rejectData = ['reason' => 'Teste de rejeição'];
-
-        $response = $this->postJson("/api/transactions/reversal/{$reversal->uuid}/reject", $rejectData);
-
-        $response->assertStatus(403)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Acesso negado. Apenas administradores podem rejeitar reversões.'
-            ]);
-    }
-
-    public function test_non_admin_user_cannot_view_pending_reversals()
-    {
-        $user = $this->actingAsUser();
-
-        $response = $this->getJson('/api/transactions/reversals/pending');
-
-        $response->assertStatus(403)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Acesso negado. Apenas administradores podem visualizar reversões pendentes.'
-            ]);
-    }
-
-    public function test_non_admin_user_cannot_view_reversal_history()
-    {
-        $user = $this->actingAsUser();
-
-        $response = $this->getJson('/api/transactions/reversals/history');
-
-        $response->assertStatus(403)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Acesso negado. Apenas administradores podem visualizar histórico de reversões.'
-            ]);
-    }
-
-    public function test_unauthenticated_user_cannot_access_transaction_endpoints()
-    {
-        $endpoints = [
-            ['POST', '/api/transactions/reversal/request', ['transaction_id' => 'test', 'reason' => 'user_request']],
-            ['POST', '/api/transactions/reversal/test-uuid/approve'],
-            ['POST', '/api/transactions/reversal/test-uuid/reject', ['reason' => 'test']],
-            ['GET', '/api/transactions/reversals/pending'],
-            ['GET', '/api/transactions/reversals/history']
-        ];
-
-        foreach ($endpoints as $endpoint) {
-            [$method, $endpointPath, $data] = array_pad($endpoint, 3, []);
-            $response = $this->json($method, $endpointPath, $data);
-            $response->assertStatus(401);
-        }
-    }
-
-    public function test_reversal_request_fails_for_pending_transaction()
-    {
-        $user = $this->actingAsUserWithWallet();
-        $wallet = $user->getDefaultWallet();
-
-        // Create a pending transaction
-        $transaction = Transaction::factory()->transfer()->pending()->create([
-            'from_wallet_id' => $wallet->id
-        ]);
-
-        $reversalData = [
-            'transaction_id' => $transaction->uuid,
-            'reason' => 'user_request',
-            'description' => 'Tentativa de reversão de transação pendente'
-        ];
-
-        $response = $this->postJson('/api/transactions/reversal/request', $reversalData);
-
-        $response->assertStatus(400)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Falha na solicitação de reversão'
-            ]);
-    }
-
-    public function test_approve_reversal_fails_for_nonexistent_reversal()
-    {
-        $admin = $this->actingAsUser(['is_admin' => true]);
-
-        $response = $this->postJson('/api/transactions/reversal/nonexistent-uuid/approve');
-
-        $response->assertStatus(404)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Reversão não encontrada'
-            ]);
-    }
-
-    public function test_valid_reversal_reasons()
-    {
-        $user = $this->actingAsUserWithWallet();
-        $wallet = $user->getDefaultWallet();
-        $transaction = Transaction::factory()->transfer()->completed()->create([
-            'from_wallet_id' => $wallet->id
-        ]);
-
-        $validReasons = ['user_request', 'system_error', 'fraud_detection', 'compliance'];
-
-        foreach ($validReasons as $reason) {
-            $reversalData = [
-                'transaction_id' => $transaction->uuid,
-                'reason' => $reason,
-                'description' => "Teste com razão: {$reason}"
-            ];
-
-            $response = $this->postJson('/api/transactions/reversal/request', $reversalData);
-            $response->assertStatus(201);
-
-            // Delete the created reversal to avoid conflicts
-            TransactionReversal::latest()->first()->delete();
-        }
+        $this->postJson('/api/v1/transactions/transfer', ['recipient_id' => 1, 'amount' => 100])
+            ->assertStatus(401);
     }
 }

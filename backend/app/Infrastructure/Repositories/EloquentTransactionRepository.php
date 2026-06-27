@@ -35,6 +35,11 @@ final class EloquentTransactionRepository implements TransactionRepository
         return $model ? $this->toDomain($model) : null;
     }
 
+    public function findByUuid(string $uuid): ?TransactionEntity
+    {
+        return $this->findById($uuid);
+    }
+
     public function findByUserId(string $userId, int $limit = 50): array
     {
         $wallet = UserModel::find($userId)?->getDefaultWallet();
@@ -57,13 +62,13 @@ final class EloquentTransactionRepository implements TransactionRepository
         $recipientId = (string) ($model->toWallet?->user_id ?? $senderId);
 
         return new TransactionEntity(
-            id: $model->uuid,
-            senderId: $senderId,
+            id:          $model->uuid,
+            senderId:    $senderId,
             recipientId: $recipientId,
-            amount: Money::of((float) $model->amount),
-            type: $model->type,
-            status: $model->status,
-            createdAt: new \DateTime($model->created_at)
+            amount:      Money::ofBalance((float) $model->amount),
+            type:        $model->type,
+            status:      $model->status,
+            createdAt:   new \DateTime($model->created_at),
         );
     }
 

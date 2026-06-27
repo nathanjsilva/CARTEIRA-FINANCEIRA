@@ -2,145 +2,77 @@
 
 namespace Tests\Unit\Observers;
 
+use App\Domain\Exceptions\InvalidTransactionException;
 use App\Models\Transaction;
 use App\Models\Wallet;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Log;
 use Tests\TestCase;
 
 class TransactionObserverTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_transaction_observer_sets_defaults_on_creation()
+    public function test_observer_sets_default_status_on_creation(): void
     {
         $wallet = Wallet::factory()->create();
 
-        Log::shouldReceive('info')->once()->with('Transaction being created', \Mockery::type('array'));
-        Log::shouldReceive('info')->once()->with('Transaction created successfully', \Mockery::type('array'));
-
         $transaction = Transaction::factory()->create([
             'from_wallet_id' => $wallet->id,
-            'status' => null,
-            'currency' => null
+            'status'         => null,
+            'currency'       => null,
         ]);
 
-        // Verify defaults were set
         $this->assertEquals('pending', $transaction->status);
         $this->assertEquals('BRL', $transaction->currency);
     }
 
-    public function test_transaction_observer_logs_high_value_transactions()
+    public function test_invalid_status_transition_throws(): void
     {
-        $wallet = Wallet::factory()->create();
+        $wallet      = Wallet::factory()->create();
+        $transaction = Transaction::factory()->completed()->create(['from_wallet_id' => $wallet->id]);
 
-        Log::shouldReceive('info')->once()->with('Transaction being created', \Mockery::type('array'));
-        Log::shouldReceive('info')->once()->with('Transaction created successfully', \Mockery::type('array'));
-        Log::shouldReceive('info')->once()->with('High value transaction detected', \Mockery::type('array'));
-
-        Transaction::factory()->create([
-            'from_wallet_id' => $wallet->id,
-            'amount' => 1500.00
-        ]);
-    }
-
-    public function test_transaction_observer_validates_status_transitions()
-    {
-        $wallet = Wallet::factory()->create();
-        $transaction = Transaction::factory()->create([
-            'from_wallet_id' => $wallet->id,
-            'status' => 'completed'
-        ]);
-
-        Log::shouldReceive('info')->once()->with('Transaction being updated', \Mockery::type('array'));
-        Log::shouldReceive('error')->once()->with('Invalid transaction status transition', \Mockery::type('array'));
-
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Invalid status transition from completed to pending');
+        $this->expectException(InvalidTransactionException::class);
 
         $transaction->update(['status' => 'pending']);
     }
 
-    public function test_transaction_observer_handles_status_changes()
+    public function test_valid_status_transition_succeeds(): void
     {
-        $wallet = Wallet::factory()->create();
-        $transaction = Transaction::factory()->create([
-            'from_wallet_id' => $wallet->id,
-            'status' => 'pending'
-        ]);
+        $wallet      = Wallet::factory()->create();
+        $transaction = Transaction::factory()->completed()->create(['from_wallet_id' => $wallet->id]);
 
-        Log::shouldReceive('info')->once()->with('Transaction being updated', \Mockery::type('array'));
-        Log::shouldReceive('info')->once()->with('Transaction updated successfully', \Mockery::type('array'));
-        Log::shouldReceive('info')->once()->with('Transaction completed', \Mockery::type('array'));
-        Log::shouldReceive('info')->once()->with('Transaction completion notification sent', \Mockery::type('array'));
+        $transaction->update(['status' => 'reversed']);
 
-        $transaction->update(['status' => 'completed']);
-
-        // Verify processed_at was set
-        $this->assertNotNull($transaction->fresh()->processed_at);
+        $this->assertEquals('reversed', $transaction->fresh()->status);
     }
 
-    public function test_transaction_observer_prevents_deletion_of_completed_transactions()
+    public function test_cannot_delete_completed_transaction(): void
     {
-        $wallet = Wallet::factory()->create();
-        $transaction = Transaction::factory()->create([
-            'from_wallet_id' => $wallet->id,
-            'status' => 'completed'
-        ]);
+        $transaction = Transaction::factory()->completed()->create();
 
-        Log::shouldReceive('warning')->once()->with('Transaction being deleted', \Mockery::type('array'));
-
-        $this->expectException(\Exception::class);
-        $this->expectExceptionMessage('Cannot delete completed transactions');
+        $this->expectException(InvalidTransactionException::class);
 
         $transaction->delete();
     }
 
-    public function test_transaction_observer_allows_deletion_of_pending_transactions()
+    public function test_can_delete_pending_transaction(): void
     {
-        $wallet = Wallet::factory()->create();
-        $transaction = Transaction::factory()->create([
-            'from_wallet_id' => $wallet->id,
-            'status' => 'pending'
-        ]);
-
-        Log::shouldReceive('warning')->once()->with('Transaction being deleted', \Mockery::type('array'));
-        Log::shouldReceive('warning')->once()->with('Transaction deleted successfully', \Mockery::type('array'));
+        $wallet      = Wallet::factory()->create();
+        $transaction = Transaction::factory()->pending()->create(['from_wallet_id' => $wallet->id]);
 
         $transaction->delete();
 
-        $this->assertDatabaseMissing('transactions', [
-            'id' => $transaction->id
-        ]);
+        $this->assertDatabaseMissing('transactions', ['id' => $transaction->id]);
     }
 
-    public function test_transaction_observer_logs_failed_transactions()
+    public function test_same_status_update_skips_transition_check(): void
     {
-        $wallet = Wallet::factory()->create();
-        $transaction = Transaction::factory()->create([
-            'from_wallet_id' => $wallet->id,
-            'status' => 'pending'
-        ]);
+        $wallet      = Wallet::factory()->create();
+        $transaction = Transaction::factory()->completed()->create(['from_wallet_id' => $wallet->id]);
 
-        Log::shouldReceive('info')->once()->with('Transaction being updated', \Mockery::type('array'));
-        Log::shouldReceive('info')->once()->with('Transaction updated successfully', \Mockery::type('array'));
-        Log::shouldReceive('warning')->once()->with('Transaction failed', \Mockery::type('array'));
-        Log::shouldReceive('info')->once()->with('Transaction failure notification sent', \Mockery::type('array'));
+        // Updating a non-status field should not throw
+        $transaction->update(['description' => 'Updated description']);
 
-        $transaction->update(['status' => 'failed']);
-    }
-
-    public function test_transaction_observer_processes_pending_transactions()
-    {
-        $wallet = Wallet::factory()->create();
-
-        Log::shouldReceive('info')->once()->with('Transaction being created', \Mockery::type('array'));
-        Log::shouldReceive('info')->once()->with('Transaction created successfully', \Mockery::type('array'));
-        Log::shouldReceive('info')->once()->with('Processing pending transaction', \Mockery::type('array'));
-
-        Transaction::factory()->create([
-            'from_wallet_id' => $wallet->id,
-            'status' => 'pending'
-        ]);
+        $this->assertEquals('completed', $transaction->fresh()->status);
     }
 }

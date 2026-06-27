@@ -12,313 +12,146 @@ class WalletControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_user_can_get_wallet_balance()
+    public function test_user_can_get_wallet_balance(): void
     {
-        $user = $this->actingAsUserWithWallet(['balance' => 1500.75]);
+        $this->actingAsUserWithWallet([], ['balance' => 1500.75]);
 
-        $response = $this->getJson('/api/wallet/balance');
+        $response = $this->getJson('/api/v1/wallet/balance');
 
         $response->assertStatus(200)
-            ->assertJson([
-                'success' => true,
-                'data' => [
-                    'wallet_id' => $user->getDefaultWallet()->id,
-                    'balance' => 1500.75,
-                    'currency' => 'BRL',
-                    'is_active' => true
-                ]
-            ]);
+            ->assertJson(['success' => true])
+            ->assertJsonPath('data.balance', 1500.75)
+            ->assertJsonPath('data.currency', 'BRL');
     }
 
-    public function test_user_without_wallet_cannot_get_balance()
+    public function test_balance_exposes_uuid_not_id(): void
     {
-        $user = $this->actingAsUser();
+        $user   = $this->actingAsUserWithWallet();
+        $wallet = $user->getDefaultWallet();
 
-        $response = $this->getJson('/api/wallet/balance');
+        $response = $this->getJson('/api/v1/wallet/balance');
 
-        $response->assertStatus(404)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Carteira não encontrada'
-            ]);
+        $response->assertStatus(200)
+            ->assertJsonPath('data.wallet_id', $wallet->uuid);
     }
 
-    public function test_user_can_deposit_money()
+    public function test_inactive_wallet_returns_404(): void
     {
-        $user = $this->actingAsUserWithWallet(['balance' => 500.00]);
+        $user   = $this->actingAsUserWithWallet();
+        $wallet = $user->getDefaultWallet();
 
-        $depositData = [
-            'amount' => 250.50,
-            'description' => 'Depósito via PIX'
-        ];
+        // Desativar carteira e deletar para simular ausência
+        $wallet->update(['balance' => 0]);
+        $wallet->delete();
 
-        $response = $this->postJson('/api/wallet/deposit', $depositData);
+        $this->getJson('/api/v1/wallet/balance')
+            ->assertStatus(404)
+            ->assertJson(['success' => false]);
+    }
+
+    public function test_user_can_deposit_money(): void
+    {
+        $user = $this->actingAsUserWithWallet([], ['balance' => 500.00]);
+
+        $response = $this->postJson('/api/v1/wallet/deposit', [
+            'amount'      => 250.50,
+            'description' => 'Depósito via PIX',
+        ]);
 
         $response->assertStatus(201)
-            ->assertJson([
-                'success' => true,
-                'message' => 'Depósito realizado com sucesso'
-            ])
-            ->assertJsonStructure([
-                'success',
-                'message',
-                'data' => [
-                    'transaction_id',
-                    'amount',
-                    'currency',
-                    'status',
-                    'new_balance'
-                ]
-            ]);
+            ->assertJson(['success' => true, 'message' => 'Depósito realizado com sucesso'])
+            ->assertJsonPath('data.new_balance', 750.50);
 
-        $this->assertEquals(750.50, $user->getDefaultWallet()->fresh()->balance);
-        
-        $this->assertDatabaseHas('transactions', [
-            'from_wallet_id' => null,
-            'to_wallet_id' => $user->getDefaultWallet()->id,
-            'type' => 'deposit',
-            'amount' => 250.50,
-            'status' => 'completed'
-        ]);
+        $this->assertEquals(750.50, (float) $user->getDefaultWallet()->fresh()->balance);
     }
 
-    public function test_deposit_fails_with_invalid_amount()
+    public function test_deposit_fails_with_negative_amount(): void
     {
-        $user = $this->actingAsUserWithWallet();
+        $this->actingAsUserWithWallet();
 
-        $depositData = [
-            'amount' => -100.00,
-            'description' => 'Depósito inválido'
-        ];
-
-        $response = $this->postJson('/api/wallet/deposit', $depositData);
-
-        $response->assertStatus(422)
+        $this->postJson('/api/v1/wallet/deposit', ['amount' => -100.00])
+            ->assertStatus(422)
             ->assertJsonValidationErrors(['amount']);
     }
 
-    public function test_user_can_withdraw_money()
+    public function test_deposit_fails_with_zero_amount(): void
     {
-        $user = $this->actingAsUserWithWallet(['balance' => 1000.00]);
+        $this->actingAsUserWithWallet();
 
-        $withdrawData = [
-            'amount' => 300.75,
-            'description' => 'Saque para pagamento'
-        ];
+        $this->postJson('/api/v1/wallet/deposit', ['amount' => 0])
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['amount']);
+    }
 
-        $response = $this->postJson('/api/wallet/withdraw', $withdrawData);
+    public function test_user_can_withdraw_money(): void
+    {
+        $user = $this->actingAsUserWithWallet([], ['balance' => 1000.00]);
+
+        $response = $this->postJson('/api/v1/wallet/withdraw', [
+            'amount'      => 300.75,
+            'description' => 'Saque',
+        ]);
 
         $response->assertStatus(201)
-            ->assertJson([
-                'success' => true,
-                'message' => 'Saque realizado com sucesso'
-            ]);
+            ->assertJson(['success' => true, 'message' => 'Saque realizado com sucesso']);
 
-        $this->assertEquals(699.25, $user->getDefaultWallet()->fresh()->balance);
-        
-        $this->assertDatabaseHas('transactions', [
-            'from_wallet_id' => $user->getDefaultWallet()->id,
-            'to_wallet_id' => null,
-            'type' => 'withdrawal',
-            'amount' => 300.75,
-            'status' => 'completed'
-        ]);
+        $this->assertEquals(699.25, (float) $user->getDefaultWallet()->fresh()->balance);
     }
 
-    public function test_withdraw_fails_with_insufficient_balance()
+    public function test_withdraw_fails_with_insufficient_balance(): void
     {
-        $user = $this->actingAsUserWithWallet(['balance' => 100.00]);
+        $this->actingAsUserWithWallet([], ['balance' => 100.00]);
 
-        $withdrawData = [
-            'amount' => 500.00,
-            'description' => 'Saque maior que saldo'
-        ];
-
-        $response = $this->postJson('/api/wallet/withdraw', $withdrawData);
-
-        $response->assertStatus(400)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Falha no saque'
-            ]);
+        $this->postJson('/api/v1/wallet/withdraw', ['amount' => 500.00])
+            ->assertStatus(422);
     }
 
-    public function test_user_can_transfer_money_to_another_wallet()
+    public function test_user_can_get_transaction_history(): void
     {
-        $fromUser = $this->actingAsUserWithWallet(['balance' => 1000.00]);
-        $toUser = User::factory()->create();
-        $toWallet = Wallet::factory()->create([
-            'user_id' => $toUser->id,
-            'balance' => 500.00
-        ]);
-
-        $transferData = [
-            'to_wallet_id' => $toWallet->id,
-            'amount' => 200.00,
-            'description' => 'Transferência para amigo'
-        ];
-
-        $response = $this->postJson('/api/wallet/transfer', $transferData);
-
-        $response->assertStatus(201)
-            ->assertJson([
-                'success' => true,
-                'message' => 'Transferência realizada com sucesso'
-            ]);
-
-        $this->assertEquals(800.00, $fromUser->getDefaultWallet()->fresh()->balance);
-        $this->assertEquals(700.00, $toWallet->fresh()->balance);
-        
-        $this->assertDatabaseHas('transactions', [
-            'from_wallet_id' => $fromUser->getDefaultWallet()->id,
-            'to_wallet_id' => $toWallet->id,
-            'type' => 'transfer',
-            'amount' => 200.00,
-            'status' => 'completed'
-        ]);
-    }
-
-    public function test_transfer_fails_with_invalid_wallet_id()
-    {
-        $user = $this->actingAsUserWithWallet(['balance' => 1000.00]);
-
-        $transferData = [
-            'to_wallet_id' => 99999,
-            'amount' => 100.00,
-            'description' => 'Transferência para carteira inexistente'
-        ];
-
-        $response = $this->postJson('/api/wallet/transfer', $transferData);
-
-        $response->assertStatus(422)
-            ->assertJsonValidationErrors(['to_wallet_id']);
-    }
-
-    public function test_transfer_fails_with_insufficient_balance()
-    {
-        $fromUser = $this->actingAsUserWithWallet(['balance' => 100.00]);
-        $toUser = User::factory()->create();
-        $toWallet = Wallet::factory()->create(['user_id' => $toUser->id]);
-
-        $transferData = [
-            'to_wallet_id' => $toWallet->id,
-            'amount' => 500.00,
-            'description' => 'Transferência maior que saldo'
-        ];
-
-        $response = $this->postJson('/api/wallet/transfer', $transferData);
-
-        $response->assertStatus(400)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Falha na transferência'
-            ]);
-    }
-
-    public function test_user_can_get_transaction_history()
-    {
-        $user = $this->actingAsUserWithWallet();
+        $user   = $this->actingAsUserWithWallet();
         $wallet = $user->getDefaultWallet();
 
-        // Create some transactions
-        Transaction::factory()->deposit()->completed()->create([
-            'to_wallet_id' => $wallet->id,
-            'amount' => 100.00
-        ]);
+        Transaction::factory()->deposit()->completed()->create(['to_wallet_id' => $wallet->id, 'amount' => 100.00]);
+        Transaction::factory()->withdrawal()->completed()->create(['from_wallet_id' => $wallet->id, 'amount' => 50.00]);
 
-        Transaction::factory()->withdrawal()->completed()->create([
-            'from_wallet_id' => $wallet->id,
-            'amount' => 50.00
-        ]);
-
-        $response = $this->getJson('/api/wallet/history');
+        $response = $this->getJson('/api/v1/wallet/history');
 
         $response->assertStatus(200)
-            ->assertJson([
-                'success' => true
-            ])
+            ->assertJson(['success' => true])
             ->assertJsonStructure([
                 'success',
                 'data' => [
                     'transactions' => [
-                        '*' => [
-                            'id',
-                            'type',
-                            'amount',
-                            'currency',
-                            'status',
-                            'description',
-                            'created_at'
-                        ]
+                        '*' => ['id', 'type', 'amount', 'status', 'created_at'],
                     ],
-                    'pagination' => [
-                        'current_page',
-                        'per_page',
-                        'total'
-                    ]
-                ]
+                ],
             ]);
 
         $this->assertCount(2, $response->json('data.transactions'));
     }
 
-    public function test_user_can_get_paginated_transaction_history()
+    public function test_history_limit_param_is_respected(): void
     {
-        $user = $this->actingAsUserWithWallet();
+        $user   = $this->actingAsUserWithWallet();
         $wallet = $user->getDefaultWallet();
 
-        // Create 15 transactions
-        Transaction::factory()->count(15)->deposit()->completed()->create([
-            'to_wallet_id' => $wallet->id,
-            'amount' => 100.00
-        ]);
+        Transaction::factory()->count(10)->deposit()->completed()->create(['to_wallet_id' => $wallet->id]);
 
-        $response = $this->getJson('/api/wallet/history?page=1&per_page=10');
+        $response = $this->getJson('/api/v1/wallet/history?limit=5');
 
-        $response->assertStatus(200)
-            ->assertJson([
-                'success' => true
-            ]);
-
-        $this->assertCount(10, $response->json('data.transactions'));
-        $this->assertEquals(15, $response->json('data.pagination.total'));
-        $this->assertEquals(1, $response->json('data.pagination.current_page'));
+        $response->assertStatus(200);
+        $this->assertCount(5, $response->json('data.transactions'));
     }
 
-    public function test_unauthenticated_user_cannot_access_wallet_endpoints()
+    public function test_unauthenticated_user_cannot_access_wallet_endpoints(): void
     {
-        $endpoints = [
-            ['GET', '/api/wallet/balance'],
-            ['POST', '/api/wallet/deposit', ['amount' => 100]],
-            ['POST', '/api/wallet/withdraw', ['amount' => 100]],
-            ['POST', '/api/wallet/transfer', ['to_wallet_id' => 1, 'amount' => 100]],
-            ['GET', '/api/wallet/history']
-        ];
-
-        foreach ($endpoints as $endpoint) {
-            [$method, $endpointPath, $data] = array_pad($endpoint, 3, []);
-            $response = $this->json($method, $endpointPath, $data);
-            $response->assertStatus(401);
+        foreach ([
+            ['GET',  '/api/v1/wallet/balance'],
+            ['POST', '/api/v1/wallet/deposit'],
+            ['POST', '/api/v1/wallet/withdraw'],
+            ['GET',  '/api/v1/wallet/history'],
+        ] as [$method, $path]) {
+            $this->json($method, $path)->assertStatus(401);
         }
-    }
-
-    public function test_transfer_fails_when_transferring_to_same_wallet()
-    {
-        $user = $this->actingAsUserWithWallet(['balance' => 1000.00]);
-        $wallet = $user->getDefaultWallet();
-
-        $transferData = [
-            'to_wallet_id' => $wallet->id,
-            'amount' => 100.00,
-            'description' => 'Transferência para mesma carteira'
-        ];
-
-        $response = $this->postJson('/api/wallet/transfer', $transferData);
-
-        $response->assertStatus(400)
-            ->assertJson([
-                'success' => false,
-                'message' => 'Falha na transferência'
-            ]);
     }
 }

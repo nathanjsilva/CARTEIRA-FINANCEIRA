@@ -6,11 +6,18 @@ use App\Application\DTOs\DepositRequestDTO;
 use App\Application\DTOs\WithdrawRequestDTO;
 use App\Application\Services\DepositService;
 use App\Application\Services\WithdrawService;
+use App\Application\Events\TransactionCompleted;
+use App\Application\Events\HighValueTransactionDetected;
 use App\Domain\Repositories\TransactionRepository;
 use App\Domain\Exceptions\InsufficientFundsException;
 use App\Domain\Exceptions\UserNotFoundException;
-use Illuminate\Http\Request;
+use App\Infrastructure\Cache\RedisWalletBalanceCache;
+use App\Presentation\Http\Requests\DepositRequest;
+use App\Presentation\Http\Requests\WithdrawRequest;
+use App\Presentation\Http\Resources\WalletResource;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 
 final class WalletController
 {
@@ -18,6 +25,7 @@ final class WalletController
         private readonly DepositService $depositService,
         private readonly WithdrawService $withdrawService,
         private readonly TransactionRepository $transactionRepository,
+        private readonly RedisWalletBalanceCache $balanceCache,
     ) {}
 
     public function balance(Request $request): JsonResponse
@@ -29,34 +37,50 @@ final class WalletController
             return response()->json(['success' => false, 'message' => 'Carteira não encontrada'], 404);
         }
 
+        $cached = $this->balanceCache->get((string) $user->id);
+        $balance = $cached ?? (float) $wallet->balance;
+
+        if ($cached === null) {
+            $this->balanceCache->set((string) $user->id, $balance);
+        }
+
         return response()->json([
             'success' => true,
             'data'    => [
-                'wallet_id' => $wallet->id,
-                'balance'   => (float) $wallet->balance,
+                'wallet_id' => $wallet->uuid,
+                'balance'   => $balance,
                 'currency'  => $wallet->currency,
                 'is_active' => $wallet->is_active,
             ],
         ]);
     }
 
-    public function deposit(Request $request): JsonResponse
+    public function deposit(DepositRequest $request): JsonResponse
     {
-        $request->validate([
-            'amount'      => 'required|numeric|min:0.01',
-            'description' => 'nullable|string|max:255',
-        ]);
-
         try {
+            $userId = (string) $request->user()->id;
             $result = $this->depositService->execute(
                 new DepositRequestDTO(
-                    userId: (string) $request->user()->id,
-                    amount: (float) $request->input('amount'),
-                    description: $request->input('description'),
+                    userId:      $userId,
+                    amount:      (float) $request->validated('amount'),
+                    description: $request->validated('description'),
                 )
             );
 
-            $balance = (float) $request->user()->getDefaultWallet()?->balance;
+            $this->balanceCache->invalidate($userId);
+            $balance = (float) $request->user()->fresh()->getDefaultWallet()?->balance;
+
+            Event::dispatch(new TransactionCompleted(
+                transactionId: $result->id,
+                type:          $result->type,
+                amount:        $result->amount,
+                senderId:      $userId,
+                recipientId:   $userId,
+            ));
+
+            if ($result->amount >= HighValueTransactionDetected::THRESHOLD) {
+                Event::dispatch(new HighValueTransactionDetected($result->id, $result->amount, $result->type, $userId));
+            }
 
             return response()->json([
                 'success' => true,
@@ -70,22 +94,19 @@ final class WalletController
         }
     }
 
-    public function withdraw(Request $request): JsonResponse
+    public function withdraw(WithdrawRequest $request): JsonResponse
     {
-        $request->validate([
-            'amount'      => 'required|numeric|min:0.01',
-            'description' => 'nullable|string|max:255',
-        ]);
-
         try {
+            $userId = (string) $request->user()->id;
             $result = $this->withdrawService->execute(
                 new WithdrawRequestDTO(
-                    userId: (string) $request->user()->id,
-                    amount: (float) $request->input('amount'),
-                    description: $request->input('description'),
+                    userId:      $userId,
+                    amount:      (float) $request->validated('amount'),
+                    description: $request->validated('description'),
                 )
             );
 
+            $this->balanceCache->invalidate($userId);
             $balance = (float) $request->user()->fresh()->getDefaultWallet()?->balance;
 
             return response()->json([
@@ -105,7 +126,7 @@ final class WalletController
     public function history(Request $request): JsonResponse
     {
         $userId = (string) $request->user()->id;
-        $limit  = (int) $request->get('limit', 50);
+        $limit  = min((int) $request->get('limit', 50), 100);
 
         $transactions = $this->transactionRepository->findByUserId($userId, $limit);
 

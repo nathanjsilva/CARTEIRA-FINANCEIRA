@@ -9,15 +9,25 @@ use App\Models\User as UserModel;
 
 final class EloquentUserRepository implements UserRepository
 {
+    public function create(UserEntity $user): UserModel
+    {
+        return UserModel::create([
+            'name'     => $user->getName(),
+            'email'    => $user->getEmail(),
+            'password' => $user->getHashedPassword(),
+        ]);
+    }
+
     public function save(UserEntity $user): void
     {
         $model = UserModel::find($user->getId());
+        if (!$model) {
+            return;
+        }
 
-        if ($model) {
-            $wallet = $model->getDefaultWallet();
-            if ($wallet) {
-                $wallet->update(['balance' => $user->getBalance()->getAmount()]);
-            }
+        $wallet = $model->getDefaultWallet();
+        if ($wallet) {
+            $wallet->update(['balance' => $user->getBalance()->getAmount()]);
         }
     }
 
@@ -37,15 +47,15 @@ final class EloquentUserRepository implements UserRepository
 
     private function toDomain(UserModel $model): UserEntity
     {
-        $wallet = $model->wallets->first();
-        $balance = $wallet ? Money::of((float) $wallet->balance) : Money::zero();
+        $wallet  = $model->wallets->first();
+        $balance = Money::ofBalance((float) ($wallet?->balance ?? 0));
 
         return new UserEntity(
-            id: (string) $model->id,
-            name: $model->name,
-            email: $model->email,
+            id:             (string) $model->id,
+            name:           $model->name,
+            email:          $model->email,
             hashedPassword: $model->password,
-            balance: $balance
+            balance:        $balance,
         );
     }
 }

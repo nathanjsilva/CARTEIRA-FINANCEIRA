@@ -28,14 +28,14 @@ abstract class TestCase extends BaseTestCase
     protected function actingAsUserWithWallet(array $userAttributes = [], array $walletAttributes = []): User
     {
         $user = User::factory()->create($userAttributes);
-        $wallet = $user->wallets()->create(array_merge([
+
+        // UserObserver auto-creates a default wallet; update it with desired attributes
+        $user->getDefaultWallet()->update(array_merge([
             'balance' => 1000.00,
-            'currency' => 'BRL',
-            'is_active' => true,
         ], $walletAttributes));
-        
+
         Sanctum::actingAs($user);
-        
+
         return $user;
     }
 }

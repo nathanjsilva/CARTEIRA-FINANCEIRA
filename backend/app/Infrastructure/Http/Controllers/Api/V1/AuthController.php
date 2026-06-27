@@ -2,95 +2,57 @@
 
 namespace App\Infrastructure\Http\Controllers\Api\V1;
 
-use App\Models\User;
-use Illuminate\Http\Request;
+use App\Application\DTOs\Auth\RegisterRequestDTO;
+use App\Application\Services\Auth\RegisterUserService;
+use App\Application\Services\Auth\LoginService;
+use App\Presentation\Http\Requests\RegisterRequest;
+use App\Presentation\Http\Requests\LoginRequest;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Hash;
-use Illuminate\Validation\ValidationException;
+use Illuminate\Http\Request;
 
 final class AuthController
 {
-    public function register(Request $request): JsonResponse
+    public function __construct(
+        private readonly RegisterUserService $registerService,
+        private readonly LoginService $loginService,
+    ) {}
+
+    public function register(RegisterRequest $request): JsonResponse
     {
-        $validated = $request->validate([
-            'name'                  => 'required|string|max:255',
-            'email'                 => 'required|email|max:255|unique:users',
-            'password'              => 'required|string|min:8|confirmed',
-            'password_confirmation' => 'required',
-        ]);
+        try {
+            $result = $this->registerService->execute(
+                new RegisterRequestDTO(
+                    name:     $request->validated('name'),
+                    email:    $request->validated('email'),
+                    password: $request->validated('password'),
+                )
+            );
 
-        $user = User::create([
-            'name'     => $validated['name'],
-            'email'    => $validated['email'],
-            'password' => Hash::make($validated['password']),
-        ]);
-
-        $wallet = $user->getDefaultWallet();
-        $token  = $user->createToken('auth_token')->plainTextToken;
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Usuário registrado com sucesso',
-            'data'    => [
-                'user'   => [
-                    'id'         => $user->id,
-                    'name'       => $user->name,
-                    'email'      => $user->email,
-                    'created_at' => $user->created_at,
-                ],
-                'wallet' => $wallet ? [
-                    'id'        => $wallet->id,
-                    'balance'   => (float) $wallet->balance,
-                    'currency'  => $wallet->currency,
-                    'is_active' => $wallet->is_active,
-                ] : null,
-                'token'  => $token,
-            ],
-        ], 201);
+            return response()->json(['success' => true, 'message' => 'Usuário registrado com sucesso', 'data' => $result->toArray()], 201);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
+        }
     }
 
-    public function login(Request $request): JsonResponse
+    public function login(LoginRequest $request): JsonResponse
     {
-        $request->validate([
-            'email'    => 'required|email',
-            'password' => 'required',
-        ]);
+        try {
+            $result = $this->loginService->execute(
+                $request->validated('email'),
+                $request->validated('password'),
+            );
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Credenciais inválidas',
-            ], 401);
+            return response()->json(['success' => true, 'message' => 'Login realizado com sucesso', 'data' => $result->toArray()]);
+        } catch (\DomainException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 401);
         }
-
-        $user   = Auth::user();
-        $token  = $user->createToken('auth_token')->plainTextToken;
-        $wallet = $user->getDefaultWallet();
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Login realizado com sucesso',
-            'data'    => [
-                'user'   => [
-                    'id'      => $user->id,
-                    'name'    => $user->name,
-                    'email'   => $user->email,
-                    'balance' => $wallet ? (float) $wallet->balance : 0,
-                ],
-                'token'  => $token,
-            ],
-        ]);
     }
 
     public function logout(Request $request): JsonResponse
     {
         $request->user()->currentAccessToken()->delete();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Logout realizado com sucesso',
-        ]);
+        return response()->json(['success' => true, 'message' => 'Logout realizado com sucesso']);
     }
 
     public function me(Request $request): JsonResponse
@@ -101,14 +63,14 @@ final class AuthController
         return response()->json([
             'success' => true,
             'data'    => [
-                'user'   => [
+                'user' => [
                     'id'         => $user->id,
                     'name'       => $user->name,
                     'email'      => $user->email,
                     'created_at' => $user->created_at,
                 ],
                 'wallet' => $wallet ? [
-                    'id'        => $wallet->id,
+                    'id'        => $wallet->uuid,
                     'balance'   => (float) $wallet->balance,
                     'currency'  => $wallet->currency,
                     'is_active' => $wallet->is_active,

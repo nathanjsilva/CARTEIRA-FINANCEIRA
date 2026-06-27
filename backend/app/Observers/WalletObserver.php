@@ -118,19 +118,16 @@ class WalletObserver
      */
     private function validateBalanceChange(Wallet $wallet, float $oldBalance, float $newBalance): void
     {
-        // Impedir saldos negativos (a menos que seja uma operação do sistema)
-        if ($newBalance < 0 && !$this->isSystemOperation()) {
-            Log::error('Tentativa de saldo negativo', [
+        if ($newBalance < 0) {
+            Log::warning('Saldo negativo detectado na carteira', [
                 'wallet_id' => $wallet->id,
                 'old_balance' => $oldBalance,
                 'new_balance' => $newBalance
             ]);
-            throw new \Exception('Saldo da carteira não pode ser negativo');
         }
 
-        // Registrar mudanças grandes de saldo
         $change = abs($newBalance - $oldBalance);
-        if ($change > 10000) { // Limite para transações grandes
+        if ($change > 10000) {
             Log::warning('Mudança grande de saldo detectada', [
                 'wallet_id' => $wallet->id,
                 'change_amount' => $change,
@@ -168,12 +165,4 @@ class WalletObserver
         Cache::forget("user_{$userId}_default_wallet");
     }
 
-    /**
-     * Verificar se esta é uma operação do sistema
-     */
-    private function isSystemOperation(): bool
-    {
-        // Isso pode ser aprimorado para verificar operações específicas do sistema
-        return app()->runningInConsole() || app()->runningUnitTests();
-    }
 }

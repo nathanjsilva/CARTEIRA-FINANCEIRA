@@ -3,38 +3,55 @@
 namespace App\Infrastructure\Http\Controllers\Api\V1;
 
 use App\Application\DTOs\TransferRequestDTO;
+use App\Application\Events\TransactionCompleted;
+use App\Application\Events\HighValueTransactionDetected;
 use App\Application\Services\TransferService;
+use App\Application\Services\Transaction\TransactionReversalService;
 use App\Domain\Exceptions\InsufficientFundsException;
+use App\Domain\Exceptions\InvalidTransactionException;
 use App\Domain\Exceptions\UserNotFoundException;
-use App\Services\TransactionReversalService;
-use App\Models\Transaction;
-use Illuminate\Http\Request;
+use App\Infrastructure\Cache\RedisWalletBalanceCache;
+use App\Presentation\Http\Requests\TransferRequest;
+use App\Presentation\Http\Requests\ReversalRequest;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Event;
 
 final class TransactionController
 {
     public function __construct(
         private readonly TransferService $transferService,
         private readonly TransactionReversalService $reversalService,
+        private readonly RedisWalletBalanceCache $balanceCache,
     ) {}
 
-    public function transfer(Request $request): JsonResponse
+    public function transfer(TransferRequest $request): JsonResponse
     {
-        $request->validate([
-            'recipient_id' => 'required|exists:users,id',
-            'amount'       => 'required|numeric|min:0.01',
-            'description'  => 'nullable|string|max:255',
-        ]);
-
         try {
-            $result = $this->transferService->execute(
+            $senderId = (string) $request->user()->id;
+            $result   = $this->transferService->execute(
                 new TransferRequestDTO(
-                    senderId: (string) $request->user()->id,
-                    recipientId: (string) $request->input('recipient_id'),
-                    amount: (float) $request->input('amount'),
-                    description: $request->input('description'),
+                    senderId:    $senderId,
+                    recipientId: (string) $request->validated('recipient_id'),
+                    amount:      (float) $request->validated('amount'),
+                    description: $request->validated('description'),
                 )
             );
+
+            $this->balanceCache->invalidate($senderId);
+            $this->balanceCache->invalidate($result->recipientId ?? '');
+
+            Event::dispatch(new TransactionCompleted(
+                transactionId: $result->id,
+                type:          $result->type,
+                amount:        $result->amount,
+                senderId:      $senderId,
+                recipientId:   $result->recipientId ?? '',
+            ));
+
+            if ($result->amount >= HighValueTransactionDetected::THRESHOLD) {
+                Event::dispatch(new HighValueTransactionDetected($result->id, $result->amount, $result->type, $senderId));
+            }
 
             return response()->json([
                 'success' => true,
@@ -50,17 +67,11 @@ final class TransactionController
         }
     }
 
-    public function requestReversal(Request $request): JsonResponse
+    public function requestReversal(ReversalRequest $request): JsonResponse
     {
-        $request->validate([
-            'transaction_id' => 'required|exists:transactions,uuid',
-            'reason'         => 'required|in:user_request,system_error,fraud_detection,compliance',
-            'description'    => 'nullable|string|max:500',
-        ]);
-
         try {
             $user        = $request->user();
-            $transaction = Transaction::where('uuid', $request->transaction_id)->firstOrFail();
+            $transaction = \App\Models\Transaction::where('uuid', $request->validated('transaction_id'))->firstOrFail();
 
             $userWallet = $user->getDefaultWallet();
             if (!$userWallet ||
@@ -75,8 +86,8 @@ final class TransactionController
             $reversal = $this->reversalService->requestReversal(
                 $transaction,
                 $user,
-                $request->reason,
-                $request->description
+                $request->validated('reason'),
+                $request->validated('description'),
             );
 
             return response()->json([
@@ -89,6 +100,8 @@ final class TransactionController
                     'reason'                  => $reversal->reason,
                 ],
             ], 201);
+        } catch (InvalidTransactionException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
         }
@@ -100,11 +113,9 @@ final class TransactionController
             $user     = $request->user();
             $reversal = \App\Models\TransactionReversal::where('uuid', $reversalId)->firstOrFail();
 
-            if (!$reversal->isPending()) {
-                return response()->json(['success' => false, 'message' => 'Reversão não está pendente'], 400);
-            }
-
             $this->reversalService->approveReversal($reversal, $user);
+
+            $this->balanceCache->invalidate((string) $reversal->requestedBy?->id);
 
             return response()->json([
                 'success' => true,
@@ -115,6 +126,8 @@ final class TransactionController
                     'approved_by' => $user->id,
                 ],
             ]);
+        } catch (InvalidTransactionException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
         }
@@ -125,10 +138,6 @@ final class TransactionController
         try {
             $reversal = \App\Models\TransactionReversal::where('uuid', $reversalId)->firstOrFail();
 
-            if (!$reversal->isPending()) {
-                return response()->json(['success' => false, 'message' => 'Reversão não está pendente'], 400);
-            }
-
             $this->reversalService->rejectReversal($reversal);
 
             return response()->json([
@@ -136,6 +145,8 @@ final class TransactionController
                 'message' => 'Reversão rejeitada com sucesso',
                 'data'    => ['reversal_id' => $reversal->uuid, 'status' => $reversal->fresh()->status],
             ]);
+        } catch (InvalidTransactionException $e) {
+            return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Exception $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 400);
         }

@@ -43,7 +43,9 @@ class Transaction extends Model
         parent::boot();
         
         static::creating(function ($transaction) {
-            $transaction->uuid = Str::uuid();
+            if (!$transaction->uuid) {
+                $transaction->uuid = Str::uuid();
+            }
         });
     }
 
@@ -92,7 +94,7 @@ class Transaction extends Model
 
     public function canBeReversed(): bool
     {
-        return $this->isCompleted() && !$this->isReversed();
+        return $this->isCompleted() && $this->type === 'transfer';
     }
 
     public function markAsCompleted(): void

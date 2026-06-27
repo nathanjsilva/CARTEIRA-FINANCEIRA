@@ -42,6 +42,14 @@ class UserTest extends TestCase
         $this->assertEquals(150.0, $user->getBalance()->getAmount());
     }
 
+    public function test_deposit_on_negative_balance_adds_correctly(): void
+    {
+        $user = new User('1', 'Test', 'test@test.com', 'hash', Money::ofBalance(-30.00));
+        $user->deposit(Money::of(100));
+
+        $this->assertEquals(70.0, $user->getBalance()->getAmount());
+    }
+
     public function test_withdraw_decreases_balance(): void
     {
         $user = $this->makeUser('1', 200);
@@ -68,6 +76,12 @@ class UserTest extends TestCase
     {
         $user = $this->makeUser('1', 10);
         $this->assertFalse($user->canTransfer(Money::of(100)));
+    }
+
+    public function test_can_transfer_returns_false_when_balance_is_negative(): void
+    {
+        $user = new User('1', 'Test', 'test@test.com', 'hash', Money::ofBalance(-50.00));
+        $this->assertFalse($user->canTransfer(Money::of(10)));
     }
 
     public function test_register_creates_user_with_zero_balance(): void

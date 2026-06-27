@@ -89,4 +89,14 @@ class TransactionFactory extends Factory
             'to_wallet_id' => Wallet::factory()->create()->id,
         ]);
     }
+
+    /**
+     * Indicate that the transaction is a reversal.
+     */
+    public function reversal(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'type' => 'reversal',
+        ]);
+    }
 }

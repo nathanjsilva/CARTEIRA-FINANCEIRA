@@ -5,6 +5,7 @@ namespace Tests\Unit\Domain\Entities;
 use PHPUnit\Framework\TestCase;
 use App\Domain\Entities\Transaction;
 use App\Domain\ValueObjects\Money;
+use App\Domain\Exceptions\InvalidTransactionException;
 
 class TransactionTest extends TestCase
 {
@@ -13,7 +14,7 @@ class TransactionTest extends TestCase
         $tx = Transaction::transfer('uuid-1', 'sender-1', 'recipient-1', Money::of(100));
 
         $this->assertEquals('transfer', $tx->getType());
-        $this->assertEquals(Transaction::STATUS_PENDING, $tx->getStatus());
+        $this->assertEquals('pending', $tx->getStatus());
         $this->assertEquals(100.0, $tx->getAmount()->getAmount());
     }
 
@@ -31,8 +32,16 @@ class TransactionTest extends TestCase
         $tx = Transaction::transfer('uuid-1', 'sender-1', 'recipient-1', Money::of(50));
         $tx->complete();
 
-        $this->assertEquals(Transaction::STATUS_COMPLETED, $tx->getStatus());
+        $this->assertEquals('completed', $tx->getStatus());
         $this->assertTrue($tx->isCompleted());
+    }
+
+    public function test_fail_changes_status(): void
+    {
+        $tx = Transaction::transfer('uuid-1', 'sender-1', 'recipient-1', Money::of(50));
+        $tx->fail();
+
+        $this->assertEquals('failed', $tx->getStatus());
     }
 
     public function test_reverse_changes_status(): void
@@ -41,20 +50,29 @@ class TransactionTest extends TestCase
         $tx->complete();
         $tx->reverse();
 
-        $this->assertEquals(Transaction::STATUS_REVERSED, $tx->getStatus());
+        $this->assertEquals('reversed', $tx->getStatus());
+    }
+
+    public function test_invalid_transition_throws_exception(): void
+    {
+        $tx = Transaction::transfer('uuid-1', 'sender-1', 'recipient-1', Money::of(50));
+        $tx->complete();
+
+        $this->expectException(InvalidTransactionException::class);
+        $tx->fail();
     }
 
     public function test_can_be_reversed_only_when_completed_transfer(): void
     {
         $tx = Transaction::transfer('uuid-1', 'sender-1', 'recipient-1', Money::of(50));
 
-        $this->assertFalse($tx->canBeReversed()); // pending
+        $this->assertFalse($tx->canBeReversed());
 
         $tx->complete();
-        $this->assertTrue($tx->canBeReversed()); // completed transfer
+        $this->assertTrue($tx->canBeReversed());
 
         $deposit = Transaction::deposit('uuid-2', 'user-1', Money::of(50));
         $deposit->complete();
-        $this->assertFalse($deposit->canBeReversed()); // deposits can't be reversed
+        $this->assertFalse($deposit->canBeReversed());
     }
 }

@@ -10,5 +10,7 @@ interface TransactionRepository
 
     public function findById(string $id): ?Transaction;
 
+    public function findByUuid(string $uuid): ?Transaction;
+
     public function findByUserId(string $userId, int $limit = 50): array;
 }

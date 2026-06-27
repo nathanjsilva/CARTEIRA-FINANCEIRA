@@ -41,10 +41,7 @@ COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
 COPY . /var/www/html
 
-RUN composer install --no-dev --optimize-autoloader --no-interaction \
-    && npm ci \
-    && npm run build \
-    && npm prune --production
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 RUN adduser -D -g 'www' www \
     && chown -R www:www /var/www/html \
