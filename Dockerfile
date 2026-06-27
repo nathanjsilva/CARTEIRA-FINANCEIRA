@@ -19,10 +19,12 @@ RUN apk add --no-cache \
         oniguruma-dev \
         postgresql-dev \
         sqlite-dev \
-        redis \
+        nodejs \
+        npm \
         $PHPIZE_DEPS \
         && docker-php-ext-install \
         pdo_mysql \
+        pdo_pgsql \
         zip \
         intl \
         gd \
@@ -37,9 +39,16 @@ RUN apk add --no-cache \
 
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
-RUN adduser -D -g 'www' www
-RUN chown -R www:www /var/www/html
-RUN chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
+COPY . /var/www/html
+
+RUN composer install --no-dev --optimize-autoloader --no-interaction \
+    && npm ci \
+    && npm run build \
+    && npm prune --production
+
+RUN adduser -D -g 'www' www \
+    && chown -R www:www /var/www/html \
+    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 USER www
 
