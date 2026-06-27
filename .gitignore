@@ -33,3 +33,6 @@ backend/storage/pail/
 frontend/.env
 frontend/node_modules/
 frontend/dist/
+
+# ─── AI Context (não versionar) ──────────────────────────────────────────────
+.ai/
