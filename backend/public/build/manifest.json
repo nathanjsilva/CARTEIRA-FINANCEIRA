@@ -1,0 +1,83 @@
+{
+  "_wallet-Be2Mqqbg.js": {
+    "file": "assets/wallet-Be2Mqqbg.js",
+    "name": "wallet",
+    "imports": [
+      "resources/js/main.js"
+    ]
+  },
+  "resources/css/app.css": {
+    "file": "assets/app-_6BGb5k6.css",
+    "src": "resources/css/app.css",
+    "isEntry": true,
+    "name": "app",
+    "names": [
+      "app.css"
+    ]
+  },
+  "resources/js/main.js": {
+    "file": "assets/main-CB_vvda5.js",
+    "name": "main",
+    "src": "resources/js/main.js",
+    "isEntry": true,
+    "dynamicImports": [
+      "resources/js/pages/LoginPage.vue",
+      "resources/js/pages/RegisterPage.vue",
+      "resources/js/pages/DashboardPage.vue",
+      "resources/js/pages/TransactionsPage.vue"
+    ],
+    "css": [
+      "assets/app-_6BGb5k6.css"
+    ]
+  },
+  "resources/js/pages/DashboardPage.vue": {
+    "file": "assets/DashboardPage-CCJhgPCO.js",
+    "name": "DashboardPage",
+    "src": "resources/js/pages/DashboardPage.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/main.js",
+      "_wallet-Be2Mqqbg.js"
+    ],
+    "css": [
+      "assets/app-_6BGb5k6.css"
+    ]
+  },
+  "resources/js/pages/LoginPage.vue": {
+    "file": "assets/LoginPage-ppBLz9q7.js",
+    "name": "LoginPage",
+    "src": "resources/js/pages/LoginPage.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/main.js"
+    ],
+    "css": [
+      "assets/app-_6BGb5k6.css"
+    ]
+  },
+  "resources/js/pages/RegisterPage.vue": {
+    "file": "assets/RegisterPage-10ZSmdxQ.js",
+    "name": "RegisterPage",
+    "src": "resources/js/pages/RegisterPage.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "resources/js/main.js"
+    ],
+    "css": [
+      "assets/app-_6BGb5k6.css"
+    ]
+  },
+  "resources/js/pages/TransactionsPage.vue": {
+    "file": "assets/TransactionsPage-6ORv25gJ.js",
+    "name": "TransactionsPage",
+    "src": "resources/js/pages/TransactionsPage.vue",
+    "isDynamicEntry": true,
+    "imports": [
+      "_wallet-Be2Mqqbg.js",
+      "resources/js/main.js"
+    ],
+    "css": [
+      "assets/app-_6BGb5k6.css"
+    ]
+  }
+}
