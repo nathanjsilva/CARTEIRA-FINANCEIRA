@@ -42,6 +42,14 @@ const icons = {
     'M16 12l-4-4-4 4',
     'M12 16V8',
   ],
+  'arrow-up-right': [
+    'M7 17L17 7',
+    'M7 7h10v10',
+  ],
+  'arrow-down-left': [
+    'M17 7L7 17',
+    'M17 17H7V7',
+  ],
   'arrows-left-right': [
     'M7 16l-4-4 4-4',
     'M3 12h18',
