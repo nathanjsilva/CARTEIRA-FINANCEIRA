@@ -20,8 +20,11 @@ class ReversalRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'transaction_id.exists' => 'Transação não encontrada.',
-            'reason.in'             => 'Motivo inválido. Use: user_request, system_error, fraud_detection ou compliance.',
+            'transaction_id.required' => 'O ID da transação é obrigatório.',
+            'transaction_id.exists'   => 'Transação não encontrada.',
+            'reason.required'         => 'O motivo da reversão é obrigatório.',
+            'reason.in'               => 'Motivo inválido. Use: user_request, system_error, fraud_detection ou compliance.',
+            'description.max'         => 'A descrição deve ter no máximo 500 caracteres.',
         ];
     }
 }

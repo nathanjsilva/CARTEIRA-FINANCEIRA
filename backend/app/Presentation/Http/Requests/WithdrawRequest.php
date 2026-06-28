@@ -19,7 +19,10 @@ class WithdrawRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'amount.min' => 'O valor mínimo para saque é R$ 0,01.',
+            'amount.required' => 'O valor é obrigatório.',
+            'amount.numeric'  => 'O valor deve ser um número.',
+            'amount.min'      => 'O valor mínimo para saque é R$ 0,01.',
+            'description.max' => 'A descrição deve ter no máximo 255 caracteres.',
         ];
     }
 }

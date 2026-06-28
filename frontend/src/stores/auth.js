@@ -21,7 +21,7 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('auth_user', JSON.stringify(data.data.user))
       return data
     } catch (err) {
-      error.value = err.response?.data?.message || 'Login falhou'
+      error.value = err.response?.data?.message || 'Falha ao realizar login. Tente novamente.'
       throw err
     } finally {
       loading.value = false
@@ -44,7 +44,7 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('auth_user', JSON.stringify(data.data.user))
       return data
     } catch (err) {
-      error.value = err.response?.data?.message || 'Registro falhou'
+      error.value = err.response?.data?.message || 'Falha ao realizar cadastro. Tente novamente.'
       throw err
     } finally {
       loading.value = false

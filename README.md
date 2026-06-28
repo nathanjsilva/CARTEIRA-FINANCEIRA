@@ -93,11 +93,21 @@ Abra o navegador e acesse: **http://localhost:5173**
 
 ## URLs do Sistema
 
+### Ambiente Local
+
 | Serviço | URL | Descrição |
 |---|---|---|
 | Frontend (app) | http://localhost:5173 | Interface principal do sistema |
 | API (backend) | http://localhost:8000 | Endpoints da API REST |
 | phpMyAdmin | http://localhost:8080 | Interface visual do banco de dados |
+
+### Ambiente de Produção (Oracle Cloud)
+
+| Serviço | URL |
+|---|---|
+| **Frontend (app)** | http://137.131.133.133:5173 |
+| **API (backend)** | http://137.131.133.133:8000 |
+| **phpMyAdmin** | http://137.131.133.133:8080 |
 
 ---
 
@@ -149,8 +159,9 @@ O Dashboard é a página central do sistema. Nela você encontra:
 
 **Botão "Transferir"**
 - Abre um formulário para enviar dinheiro para outro usuário
-- Preencha o **ID do destinatário** (o ID numérico do usuário), o **valor** e uma **descrição** opcional
-- Não é possível transferir para a própria conta
+- Selecione o **destinatário** no campo de seleção — o sistema carrega automaticamente todos os usuários cadastrados, exibindo o UUID da conta e o nome de cada um
+- Informe o **valor** e uma **descrição** opcional
+- Não é possível transferir para a própria conta (o usuário autenticado não aparece na lista)
 - Clique em **"Confirmar"** para realizar a transferência
 
 **Últimas transações**
@@ -408,7 +419,7 @@ O projeto inclui uma coleção Postman pronta para uso.
 2. Execute **"Login"** — o token é salvo automaticamente na variável `{{token}}`
 3. Execute **"Consultar Saldo"** para verificar a carteira
 4. Execute **"Depósito"** para adicionar saldo
-5. Para transferir, crie um segundo usuário e use o ID dele no campo `recipient_id`
+5. Para transferir: execute **"Listar Usuários"** para ver os IDs disponíveis, depois use o `id` no campo `recipient_id` da **"Transferência"**
 6. No **"Histórico de Transações"**, copie o `uuid` de uma transação
 7. Use esse `uuid` para baixar o comprovante PDF ou solicitar uma reversão
 

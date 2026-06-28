@@ -6,6 +6,7 @@ export const useWalletStore = defineStore('wallet', () => {
   const balance      = ref(0)
   const currency     = ref('BRL')
   const transactions = ref([])
+  const users        = ref([])
   const loading      = ref(false)
   const error        = ref('')
 
@@ -16,7 +17,7 @@ export const useWalletStore = defineStore('wallet', () => {
       balance.value  = data.data.balance
       currency.value = data.data.currency
     } catch (err) {
-      error.value = err.response?.data?.message || 'Erro ao buscar saldo'
+      error.value = err.response?.data?.message || 'Erro ao buscar o saldo. Tente novamente.'
     } finally {
       loading.value = false
     }
@@ -28,9 +29,18 @@ export const useWalletStore = defineStore('wallet', () => {
       const { data }     = await api.get(`/wallet/history?limit=${limit}`)
       transactions.value = data.data.transactions
     } catch (err) {
-      error.value = err.response?.data?.message || 'Erro ao buscar histórico'
+      error.value = err.response?.data?.message || 'Erro ao buscar o histórico de transações.'
     } finally {
       loading.value = false
+    }
+  }
+
+  async function fetchUsers() {
+    try {
+      const { data } = await api.get('/users')
+      users.value = data.data.users
+    } catch {
+      users.value = []
     }
   }
 
@@ -42,7 +52,7 @@ export const useWalletStore = defineStore('wallet', () => {
       balance.value  = data.data.new_balance
       return data
     } catch (err) {
-      error.value = err.response?.data?.message || 'Erro no depósito'
+      error.value = err.response?.data?.message || 'Erro ao processar o depósito. Tente novamente.'
       throw err
     } finally {
       loading.value = false
@@ -57,7 +67,7 @@ export const useWalletStore = defineStore('wallet', () => {
       balance.value  = data.data.new_balance
       return data
     } catch (err) {
-      error.value = err.response?.data?.message || 'Erro no saque'
+      error.value = err.response?.data?.message || 'Erro ao processar o saque. Tente novamente.'
       throw err
     } finally {
       loading.value = false
@@ -76,7 +86,7 @@ export const useWalletStore = defineStore('wallet', () => {
       await fetchBalance()
       return data
     } catch (err) {
-      error.value = err.response?.data?.message || 'Erro na transferência'
+      error.value = err.response?.data?.message || 'Erro ao processar a transferência. Tente novamente.'
       throw err
     } finally {
       loading.value = false
@@ -98,7 +108,7 @@ export const useWalletStore = defineStore('wallet', () => {
       await fetchHistory()
       return data
     } catch (err) {
-      error.value = err.response?.data?.message || 'Erro ao solicitar reversão'
+      error.value = err.response?.data?.message || 'Erro ao solicitar a reversão. Tente novamente.'
       throw err
     } finally {
       loading.value = false
@@ -129,7 +139,7 @@ export const useWalletStore = defineStore('wallet', () => {
   }
 
   return {
-    balance, currency, transactions, loading, error,
-    fetchBalance, fetchHistory, deposit, withdraw, transfer, requestReversal, downloadReceipt, formatCurrency,
+    balance, currency, transactions, users, loading, error,
+    fetchBalance, fetchHistory, fetchUsers, deposit, withdraw, transfer, requestReversal, downloadReceipt, formatCurrency,
   }
 })

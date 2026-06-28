@@ -21,9 +21,16 @@ class RegisterRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'email.unique'    => 'Este e-mail já está em uso.',
-            'password.min'    => 'A senha deve ter pelo menos 8 caracteres.',
-            'password.confirmed' => 'A confirmação de senha não confere.',
+            'name.required'              => 'O nome é obrigatório.',
+            'name.max'                   => 'O nome deve ter no máximo 255 caracteres.',
+            'email.required'             => 'O e-mail é obrigatório.',
+            'email.email'                => 'Informe um e-mail válido.',
+            'email.max'                  => 'O e-mail deve ter no máximo 255 caracteres.',
+            'email.unique'               => 'Este e-mail já está em uso.',
+            'password.required'          => 'A senha é obrigatória.',
+            'password.min'               => 'A senha deve ter pelo menos 8 caracteres.',
+            'password.confirmed'         => 'A confirmação de senha não confere.',
+            'password_confirmation.required' => 'A confirmação de senha é obrigatória.',
         ];
     }
 }

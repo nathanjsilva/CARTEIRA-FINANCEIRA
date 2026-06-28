@@ -21,9 +21,13 @@ class TransferRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'recipient_id.required' => 'O destinatário é obrigatório.',
             'recipient_id.exists'   => 'Destinatário não encontrado.',
             'recipient_id.not_in'   => 'Você não pode transferir para a sua própria conta.',
-            'amount.min'          => 'O valor mínimo para transferência é R$ 0,01.',
+            'amount.required'       => 'O valor é obrigatório.',
+            'amount.numeric'        => 'O valor deve ser um número.',
+            'amount.min'            => 'O valor mínimo para transferência é R$ 0,01.',
+            'description.max'       => 'A descrição deve ter no máximo 255 caracteres.',
         ];
     }
 }
