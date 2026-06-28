@@ -59,9 +59,9 @@ async function handleLogout() {
             </RouterLink>
           </nav>
 
-          <span class="hidden sm:inline-flex items-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-400">
-            <span class="flex h-9 w-9 items-center justify-center rounded-2xl bg-brand/10 text-brand">{{ userInitials }}</span>
-            <span class="truncate max-w-[12rem]">{{ authStore.user?.name }}</span>
+          <span class="inline-flex items-center gap-2 rounded-2xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm text-zinc-400">
+            <span class="flex h-9 w-9 items-center justify-center rounded-2xl bg-brand/10 text-brand font-semibold text-xs">{{ userInitials }}</span>
+            <span class="hidden sm:inline truncate max-w-48">{{ authStore.user?.name }}</span>
           </span>
 
           <AppButton variant="ghost" size="sm" @click="handleLogout" class="text-zinc-300 hover:text-zinc-100">
