@@ -3,6 +3,7 @@
 namespace App\Domain\Entities;
 
 use App\Domain\ValueObjects\Money;
+use App\Domain\Exceptions\DomainException;
 use App\Domain\Exceptions\InsufficientFundsException;
 
 class User
@@ -57,6 +58,10 @@ class User
 
     public function transfer(Money $amount, User $recipient): void
     {
+        if ($this->id === $recipient->id) {
+            throw new DomainException('Transferência para a própria conta não é permitida.');
+        }
+
         if (!$this->canTransfer($amount)) {
             throw new InsufficientFundsException($amount, $this->balance);
         }
