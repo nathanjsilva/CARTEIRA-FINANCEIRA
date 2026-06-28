@@ -14,7 +14,7 @@ const props = defineProps({
 })
 
 const { getConfig, formatDate } = useTransaction()
-const config = computed(() => getConfig(props.transaction.type))
+const config = computed(() => getConfig(props.transaction.type, props.transaction.direction))
 const walletStore = useWalletStore()
 const toast = useToast()
 const requesting  = ref(false)
@@ -107,7 +107,7 @@ async function submitReversalRequest() {
       </button>
 
       <button
-        v-if="transaction.type === 'transfer' && transaction.status === 'completed'"
+        v-if="transaction.type === 'transfer' && transaction.direction === 'sent' && transaction.status === 'completed'"
         @click="openReversalModal"
         :disabled="requesting"
         class="w-full rounded-xl border border-zinc-800 bg-zinc-950/90 px-3 py-1 text-xs text-zinc-100 hover:border-zinc-700"

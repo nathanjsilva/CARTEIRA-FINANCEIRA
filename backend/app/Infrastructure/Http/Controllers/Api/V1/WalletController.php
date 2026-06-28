@@ -136,6 +136,9 @@ final class WalletController
                 'transactions' => array_map(fn ($t) => [
                     'id'         => $t->getId(),
                     'type'       => $t->getType(),
+                    'direction'  => $t->getType() === 'transfer'
+                        ? ($t->getSenderId() === $userId ? 'sent' : 'received')
+                        : null,
                     'amount'     => $t->getAmount()->getAmount(),
                     'status'     => $t->getStatus(),
                     'created_at' => $t->getCreatedAt()->format('Y-m-d H:i:s'),

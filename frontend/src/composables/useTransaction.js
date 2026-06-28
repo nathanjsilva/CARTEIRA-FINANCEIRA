@@ -17,12 +17,20 @@ export function useTransaction() {
       positive: false,
     },
     transfer: {
-      label:    'Transferência',
-      icon:     'arrows-left-right',
-      color:    'text-info',
-      bgColor:  'bg-info/10',
+      label:    'Transferência enviada',
+      icon:     'arrow-up-right',
+      color:    'text-error',
+      bgColor:  'bg-error/10',
       sign:     '-',
       positive: false,
+    },
+    transfer_received: {
+      label:    'Transferência recebida',
+      icon:     'arrow-down-left',
+      color:    'text-success',
+      bgColor:  'bg-success/10',
+      sign:     '+',
+      positive: true,
     },
     reversal: {
       label:    'Reversão',
@@ -34,7 +42,10 @@ export function useTransaction() {
     },
   }
 
-  function getConfig(type) {
+  function getConfig(type, direction) {
+    if (type === 'transfer' && direction === 'received') {
+      return typeConfig['transfer_received']
+    }
     return typeConfig[type] ?? {
       label:    type,
       icon:     'info',
