@@ -105,6 +105,22 @@ export const useWalletStore = defineStore('wallet', () => {
     }
   }
 
+  async function downloadReceipt(uuid) {
+    try {
+      const response = await api.get(`/transactions/${uuid}/receipt`, { responseType: 'blob' })
+      const url  = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }))
+      const link = document.createElement('a')
+      link.href  = url
+      link.download = `extrato-${uuid}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      throw err
+    }
+  }
+
   function formatCurrency(value) {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
@@ -114,6 +130,6 @@ export const useWalletStore = defineStore('wallet', () => {
 
   return {
     balance, currency, transactions, loading, error,
-    fetchBalance, fetchHistory, deposit, withdraw, transfer, requestReversal, formatCurrency,
+    fetchBalance, fetchHistory, deposit, withdraw, transfer, requestReversal, downloadReceipt, formatCurrency,
   }
 })

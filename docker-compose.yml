@@ -24,6 +24,56 @@ services:
     networks:
       - app-network
 
+  scheduler:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: carteira_scheduler
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      - APP_ENV=production
+      - DB_HOST=db
+      - DB_DATABASE=carteira_financeira
+      - DB_USERNAME=nathan_carteira
+      - DB_PASSWORD=1234
+      - REDIS_HOST=redis
+      - FRONTEND_URL=http://localhost:5173,http://127.0.0.1:5173
+    volumes:
+      - ./backend:/var/www/html
+      - ./backend/docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    depends_on:
+      - db
+      - redis
+    command: sh -c "while true; do php artisan schedule:run --no-interaction --verbose; sleep 60; done"
+    networks:
+      - app-network
+
+  queue:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: carteira_queue
+    restart: unless-stopped
+    working_dir: /var/www/html
+    environment:
+      - APP_ENV=production
+      - DB_HOST=db
+      - DB_DATABASE=carteira_financeira
+      - DB_USERNAME=nathan_carteira
+      - DB_PASSWORD=1234
+      - REDIS_HOST=redis
+      - FRONTEND_URL=http://localhost:5173,http://127.0.0.1:5173
+    volumes:
+      - ./backend:/var/www/html
+      - ./backend/docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+    depends_on:
+      - db
+      - redis
+    command: php artisan queue:work --sleep=3 --tries=3 --timeout=90
+    networks:
+      - app-network
+
   nginx:
     image: nginx:stable-alpine
     container_name: carteira_nginx

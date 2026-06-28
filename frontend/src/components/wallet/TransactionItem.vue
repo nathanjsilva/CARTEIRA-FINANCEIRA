@@ -17,9 +17,22 @@ const { getConfig, formatDate } = useTransaction()
 const config = computed(() => getConfig(props.transaction.type))
 const walletStore = useWalletStore()
 const toast = useToast()
-const requesting = ref(false)
-const modalOpen = ref(false)
-const reason = ref('')
+const requesting  = ref(false)
+const downloading = ref(false)
+const modalOpen   = ref(false)
+const reason      = ref('')
+
+async function downloadReceipt() {
+  downloading.value = true
+  try {
+    const uuid = props.transaction.id || props.transaction.uuid
+    await walletStore.downloadReceipt(uuid)
+  } catch {
+    toast.error('Erro ao gerar extrato PDF')
+  } finally {
+    downloading.value = false
+  }
+}
 
 function openReversalModal() {
   reason.value = 'user_request'
@@ -82,11 +95,22 @@ async function submitReversalRequest() {
         {{ config.sign }}{{ formattedAmount }}
       </p>
       <AppBadge :variant="transaction.status" size="xs">{{ transaction.status }}</AppBadge>
+
+      <button
+        @click="downloadReceipt"
+        :disabled="downloading"
+        class="w-full rounded-xl border border-zinc-800 bg-zinc-950/90 px-3 py-1 text-xs text-zinc-400 hover:border-zinc-600 hover:text-zinc-100 transition-colors flex items-center justify-center gap-1"
+        title="Baixar extrato em PDF"
+      >
+        <AppIcon name="file-text" :size="11" :stroke-width="2" />
+        <span>{{ downloading ? 'Gerando...' : 'Baixar extrato' }}</span>
+      </button>
+
       <button
         v-if="transaction.type === 'transfer' && transaction.status === 'completed'"
         @click="openReversalModal"
         :disabled="requesting"
-        class="mt-2 w-full rounded-xl border border-zinc-800 bg-zinc-950/90 px-3 py-1 text-xs text-zinc-100 hover:border-zinc-700"
+        class="w-full rounded-xl border border-zinc-800 bg-zinc-950/90 px-3 py-1 text-xs text-zinc-100 hover:border-zinc-700"
       >
         <span v-if="!requesting">Solicitar reversão</span>
         <span v-else>Solicitando...</span>

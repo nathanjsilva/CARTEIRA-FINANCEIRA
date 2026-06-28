@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Infrastructure\Http\Controllers\Api\V1\AuthController;
+use App\Infrastructure\Http\Controllers\Api\V1\TransactionReceiptController;
 use App\Infrastructure\Http\Controllers\Api\V1\WalletController;
 use App\Infrastructure\Http\Controllers\Api\V1\TransactionController;
 
@@ -33,6 +34,7 @@ Route::prefix('v1')->group(function () {
             Route::post('reversal/request',               [TransactionController::class, 'requestReversal']);
             Route::post('reversal/{reversalId}/approve',  [TransactionController::class, 'approveReversal']);
             Route::post('reversal/{reversalId}/reject',   [TransactionController::class, 'rejectReversal']);
+            Route::get('{uuid}/receipt',                  [TransactionReceiptController::class, 'download']);
         });
     });
 });

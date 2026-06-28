@@ -36,3 +36,4 @@ frontend/dist/
 
 # ─── AI Context (não versionar) ──────────────────────────────────────────────
 .ai/
+CLAUDE.md

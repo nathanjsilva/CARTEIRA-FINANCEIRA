@@ -1,75 +1,154 @@
-<<<<<<< HEAD
-# Sistema de Carteira Financeira
+# Carteira Financeira
 
-Sistema completo de carteira financeira desenvolvido em Laravel 12 com PHP 8.2, MySQL e Docker. Permite que usuários realizem operações de depósito, saque, transferência e reversão de transações com total segurança e auditoria.
+Sistema de carteira financeira digital full-stack, desenvolvido com **Laravel 12** no backend e **Vue 3** no frontend. Permite que usuários realizem operações financeiras — depósito, saque, transferência e reversão de transações — com auditoria completa e arquitetura DDD.
 
-## 🚀 Funcionalidades
+---
 
-- ✅ **Cadastro e Autenticação** com Laravel Sanctum
-- ✅ **Operações de Carteira**: Depósito, Saque e Transferência
-- ✅ **Sistema de Reversão** de transações
-- ✅ **Validação de Saldo** antes de operações
-- ✅ **Auditoria Completa** com logs de atividade
-- ✅ **API RESTful** com documentação completa
-- ✅ **Docker** para ambiente de desenvolvimento
-- ✅ **Testes** unitários e de integração
-- ✅ **Observabilidade** com logging estruturado
+## Funcionalidades
 
-## 🛠️ Tecnologias
+| Funcionalidade | Descrição |
+|----------------|-----------|
+| Autenticação | Registro, login e logout com Laravel Sanctum (Bearer token) |
+| Carteira | Consulta de saldo e histórico de transações |
+| Depósito | Adiciona saldo à carteira do usuário |
+| Saque | Remove saldo com validação de fundos suficientes |
+| Transferência | Transfere saldo entre usuários do sistema de forma atômica |
+| Reversão | Solicita estorno de uma transferência com aprovação manual |
+| Extrato PDF | Baixa comprovante em PDF de qualquer transação |
+| Auditoria | Log automático de todas as operações via Spatie Activity Log |
+| Jobs Agendados | Aprovação automática de reversões pendentes via queue Redis |
 
-- **Backend**: Laravel 12, PHP 8.2
-- **Banco de Dados**: MySQL 8.0
-- **Cache/Sessão**: Redis
-- **Autenticação**: Laravel Sanctum
-- **Containerização**: Docker & Docker Compose
-- **Logging**: Spatie Activity Log
-- **Testes**: PHPUnit
+---
 
-## 📋 Requisitos
+## Stack Tecnológico
 
-- Docker e Docker Compose
-- PHP 8.2+
-- Composer
-- MySQL 8.0+
-- Redis
+### Backend
+| Camada | Tecnologia |
+|--------|-----------|
+| Framework | Laravel 12 / PHP 8.2 |
+| Autenticação | Laravel Sanctum |
+| Banco de dados | MySQL 8.0 |
+| Cache e filas | Redis (Predis) |
+| Geração de PDF | barryvdh/laravel-dompdf |
+| Auditoria | spatie/laravel-activitylog |
+| Testes | PHPUnit 11 |
 
-## 🚀 Instalação e Execução
+### Frontend
+| Camada | Tecnologia |
+|--------|-----------|
+| Framework | Vue 3 (Composition API) |
+| Estado | Pinia |
+| Estilo | Tailwind CSS v4 |
+| Roteamento | Vue Router 4 |
+| HTTP | Axios |
+| Bundler | Vite |
+
+### Infraestrutura
+| Serviço | Container |
+|---------|-----------|
+| API PHP-FPM | `carteira_api` |
+| Scheduler (cron) | `carteira_scheduler` |
+| Queue Worker | `carteira_queue` |
+| Nginx | `carteira_nginx` → porta 8000 |
+| Vue 3 / Vite | `carteira_frontend` → porta 5173 |
+| MySQL 8.0 | `carteira_db` → porta 3306 |
+| Redis | `carteira_redis` → porta 6379 |
+| phpMyAdmin | `carteira_phpmyadmin` → porta 8080 |
+
+---
+
+## Arquitetura — DDD
+
+O backend segue **Domain-Driven Design** em 4 camadas com dependências unidirecionais:
+
+```
+Presentation  →  Application  →  Domain  ←  Infrastructure
+(Requests,       (Services,       (Entities,    (Controllers,
+ Resources)       DTOs, Events)    ValueObjects,  Repositories,
+                                   Repositories,  Cache, Jobs)
+                                   Exceptions)
+```
+
+**Regra principal:** o `Domain` não importa nenhuma classe do Laravel. Toda regra de negócio vive em `app/Domain/`, orquestrada por `app/Application/Services/`.
+
+---
+
+## Banco de Dados
+
+### Tabelas
+
+| Tabela | Descrição |
+|--------|-----------|
+| `users` | Usuários do sistema |
+| `wallets` | Carteira BRL de cada usuário (1:1 com users) |
+| `transactions` | Registro de todas as movimentações |
+| `transaction_reversals` | Estornos com status e aprovação |
+| `activity_log` | Auditoria automática de todas as operações |
+
+### Relacionamentos
+
+```
+User ──< Wallet ──< Transaction (from_wallet_id)
+                 ──< Transaction (to_wallet_id)
+Transaction ──── TransactionReversal (original_transaction_id)
+Transaction ──── TransactionReversal (reversal_transaction_id)
+```
+
+---
+
+## Endpoints da API
+
+Base URL: `http://localhost:8000/api`
+
+### Públicos
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| GET | `/health` | Health check |
+| POST | `/v1/auth/register` | Registro de usuário |
+| POST | `/v1/auth/login` | Login — retorna Bearer token |
+
+### Protegidos (Bearer token obrigatório)
+
+| Método | Rota | Descrição |
+|--------|------|-----------|
+| POST | `/v1/auth/logout` | Invalida o token atual |
+| GET | `/v1/auth/me` | Dados do usuário autenticado + wallet |
+| GET | `/v1/wallet/balance` | Saldo da carteira |
+| POST | `/v1/wallet/deposit` | Depositar valor |
+| POST | `/v1/wallet/withdraw` | Sacar valor |
+| GET | `/v1/wallet/history` | Histórico de transações |
+| POST | `/v1/transactions/transfer` | Transferir para outro usuário |
+| POST | `/v1/transactions/reversal/request` | Solicitar reversão de transferência |
+| POST | `/v1/transactions/reversal/{id}/approve` | Aprovar reversão |
+| POST | `/v1/transactions/reversal/{id}/reject` | Rejeitar reversão |
+| GET | `/v1/transactions/{uuid}/receipt` | Download do comprovante em PDF |
+
+---
+
+## Como Executar
+
+### Pré-requisitos
+
+- Docker e Docker Compose instalados
 
 ### 1. Clone o repositório
+
 ```bash
 git clone <url-do-repositorio>
-cd api-carteira-financeira
+cd carteira-financeira
 ```
 
-### 2. Configure o ambiente
+### 2. Suba os containers
+
 ```bash
-# Copie o arquivo de ambiente
-cp .env.example .env
-
-# Configure as variáveis de ambiente no .env para Docker:
-# (Execute o comando abaixo para configurar automaticamente)
-# PowerShell:
-(Get-Content .env) -replace 'DB_CONNECTION=sqlite', 'DB_CONNECTION=mysql' -replace '# DB_HOST=127.0.0.1', 'DB_HOST=db' -replace '# DB_PORT=3306', 'DB_PORT=3306' -replace '# DB_DATABASE=laravel', 'DB_DATABASE=wallet_db' -replace '# DB_USERNAME=root', 'DB_USERNAME=wallet_user' -replace '# DB_PASSWORD=', 'DB_PASSWORD=wallet_password' -replace 'SESSION_DRIVER=database', 'SESSION_DRIVER=redis' -replace 'QUEUE_CONNECTION=database', 'QUEUE_CONNECTION=redis' -replace 'CACHE_STORE=database', 'CACHE_STORE=redis' -replace 'REDIS_HOST=127.0.0.1', 'REDIS_HOST=redis' | Set-Content .env
-
-# Ou configure manualmente no .env:
-# DB_CONNECTION=mysql
-# DB_HOST=db
-# DB_PORT=3306
-# DB_DATABASE=carteira_financeira
-# DB_USERNAME=nathan_carteira
-# DB_PASSWORD=
-# REDIS_HOST=redis
-# CACHE_STORE=redis
-# SESSION_DRIVER=redis
-# QUEUE_CONNECTION=redis
-```
-
-### 3. Execute com Docker
-```bash
-# Construa e execute os containers
 docker-compose up -d --build
+```
 
-# Instale as dependências
+### 3. Configure o backend
+
+```bash
+# Instale as dependências PHP
 docker-compose exec app composer install
 
 # Gere a chave da aplicação
@@ -77,158 +156,85 @@ docker-compose exec app php artisan key:generate
 
 # Execute as migrations
 docker-compose exec app php artisan migrate
-
-# (Opcional) Execute os seeders
-docker-compose exec app php artisan db:seed
 ```
 
-### 4. Acesse a aplicação
-- **API**: http://localhost:8000/api
-- **PhpMyAdmin**: http://localhost:8080
-- **Logs**: `docker-compose logs -f app`
+### 4. Acesse
 
-## 📚 Documentação
+| Serviço | URL |
+|---------|-----|
+| API | http://localhost:8000/api |
+| Frontend (Vue 3) | http://localhost:5173 |
+| phpMyAdmin | http://localhost:8080 |
 
-- **[Guia do Postman](POSTMAN_GUIDE.md)** - Como usar a API com Postman
-- **Postman Collection**: `postman_collection.json` - Collection completa para testes
-- **Postman Environment**: `postman_environment.json` - Ambiente configurado
+---
 
-## 🧪 Testes
+## Testes
 
 ```bash
-# Execute os testes
+# Executa todos os testes
 docker-compose exec app php artisan test
 
-# Execute com cobertura
+# Com cobertura de código
 docker-compose exec app php artisan test --coverage
 ```
 
-## 📊 Estrutura do Banco de Dados
+---
 
-### Tabelas Principais
+## Exemplos de Uso
 
-- **users**: Usuários do sistema
-- **wallets**: Carteiras dos usuários
-- **transactions**: Transações financeiras
-- **transaction_reversals**: Reversões de transações
-- **activity_log**: Logs de auditoria
+### Registrar usuário
 
-### Relacionamentos
-
-- User → hasMany → Wallets
-- Wallet → hasMany → Transactions (sent/received)
-- Transaction → hasOne → TransactionReversal
-- Todas as operações são auditadas automaticamente
-
-## 🔐 Segurança
-
-- **Autenticação**: Laravel Sanctum com tokens seguros
-- **Validação**: Validação rigorosa de todos os inputs
-- **Transações**: Operações atômicas com rollback automático
-- **Auditoria**: Logs completos de todas as operações
-- **Autorização**: Verificação de permissões em todas as operações
-
-## 🏗️ Arquitetura
-
-O sistema segue os princípios **SOLID** e implementa:
-
-- **Service Layer Pattern**: Lógica de negócio isolada
-- **Repository Pattern**: Abstração do banco de dados
-- **Observer Pattern**: Logs automáticos de mudanças
-- **Factory Pattern**: Criação de dados de teste
-
-## 📈 Performance
-
-- **Índices otimizados** para queries frequentes
-- **Cache Redis** para sessões e dados frequentes
-- **Eager Loading** para evitar N+1 queries
-- **Transações atômicas** para consistência
-
-## 🔄 Fluxo de Operações
-
-### Depósito
-1. Validação do valor
-2. Criação da transação
-3. Atualização do saldo
-4. Log de auditoria
-
-### Transferência
-1. Validação de carteiras
-2. Verificação de saldo
-3. Transação atômica (debit + credit)
-4. Log de auditoria
-
-### Reversão
-1. Solicitação de reversão
-2. Aprovação manual
-3. Execução da reversão
-4. Log de auditoria
-
-## 🐳 Docker
-
-O projeto inclui configuração completa do Docker:
-
-- **app**: Container PHP-FPM com Laravel
-- **nginx**: Servidor web
-- **db**: MySQL 8.0
-- **redis**: Cache e sessões
-- **phpmyadmin**: Interface web para MySQL
-
-## 📝 Exemplos de Uso
-
-### Registrar Usuário
 ```bash
-curl -X POST http://localhost:8000/api/auth/register \
+curl -X POST http://localhost:8000/api/v1/auth/register \
   -H "Content-Type: application/json" \
   -d '{
     "name": "João Silva",
     "email": "joao@example.com",
-    "password": "senha123",
-    "password_confirmation": "senha123"
+    "password": "senha12345",
+    "password_confirmation": "senha12345"
   }'
 ```
 
-### Fazer Depósito
+### Depositar
+
 ```bash
-curl -X POST http://localhost:8000/api/wallet/deposit \
+curl -X POST http://localhost:8000/api/v1/wallet/deposit \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer {token}" \
-  -d '{
-    "amount": 1000.00,
-    "description": "Depósito inicial"
-  }'
+  -d '{"amount": 1000.00, "description": "Depósito inicial"}'
 ```
 
 ### Transferir
+
 ```bash
-curl -X POST http://localhost:8000/api/wallet/transfer \
+curl -X POST http://localhost:8000/api/v1/transactions/transfer \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer {token}" \
-  -d '{
-    "to_wallet_id": 2,
-    "amount": 100.00,
-    "description": "Transferência para Maria"
-  }'
+  -d '{"recipient_id": 2, "amount": 100.00, "description": "Pagamento"}'
 ```
 
-## 🤝 Contribuição
+### Baixar comprovante PDF
 
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/AmazingFeature`)
-3. Commit suas mudanças (`git commit -m 'Add some AmazingFeature'`)
-4. Push para a branch (`git push origin feature/AmazingFeature`)
-5. Abra um Pull Request
+```bash
+curl -X GET http://localhost:8000/api/v1/transactions/{uuid}/receipt \
+  -H "Authorization: Bearer {token}" \
+  --output extrato.pdf
+```
 
-## 📄 Licença
+---
 
-Este projeto está sob a licença MIT. Veja o arquivo [LICENSE](LICENSE) para mais detalhes.
+## Segurança
 
-## 👨‍💻 Autor
+- Tokens Bearer gerenciados pelo Laravel Sanctum (invalidados no logout)
+- Nenhum ID interno exposto na API — apenas UUIDs
+- Validação de ownership em todas as operações sobre recursos de terceiros
+- Operações financeiras executadas dentro de `DB::transaction()` com rollback automático
+- Rate limiting nos endpoints de autenticação e transações
+- Senhas hasheadas com bcrypt
 
-**nathanjsilva**
-- 📧 **Email**: nathan.ads.100@gmail.com
-- 🚀 **Desenvolvedor Full Stack**
+---
 
-=======
-# api-carteira-financeira
->>>>>>> 842373fce101086609351db57a4be06c10f475b0
+## Autor
+
+**Nathan J. Silva**
+- Email: nathan.ads.100@gmail.com
