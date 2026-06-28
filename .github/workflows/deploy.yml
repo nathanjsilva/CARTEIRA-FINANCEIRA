@@ -20,9 +20,10 @@ jobs:
           port: 22
           script_stop: true
           script: |
-            cd ~/carteira-financeira
+            cd ~/CARTEIRA-FINANCEIRA
             git pull origin master
-            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-deps --build app scheduler queue nginx frontend
+            docker compose exec -T app composer install --no-dev --optimize-autoloader
             docker compose exec -T app php artisan migrate --force
             docker compose exec -T app php artisan config:cache
             docker compose exec -T app php artisan route:cache

@@ -42,3 +42,6 @@ DECISOES_TECNICAS.md
 # ─── Deploy (configurações específicas do servidor) ──────────────────────────
 DEPLOY-ORACLE.md
 docker-compose.prod.yml
+
+# ─── Scripts de teste (não versionar) ────────────────────────────────────────
+backend/database/scripts/
