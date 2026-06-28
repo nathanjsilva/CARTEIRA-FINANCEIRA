@@ -17,11 +17,11 @@ const filterType = ref('all')
 onMounted(() => walletStore.fetchHistory(100))
 
 const typeOptions = [
-  { value: 'all',        label: 'Todos' },
-  { value: 'deposit',    label: 'Depósitos' },
-  { value: 'withdrawal', label: 'Saques' },
-  { value: 'transfer',   label: 'Transferências' },
-  { value: 'reversal',   label: 'Reversões' },
+  { value: 'all',        label: 'Todos',        icon: 'fa-solid fa-list' },
+  { value: 'deposit',    label: 'Depósitos',    icon: 'fa-solid fa-arrow-down' },
+  { value: 'withdrawal', label: 'Saques',       icon: 'fa-solid fa-arrow-up' },
+  { value: 'transfer',   label: 'Transferências', icon: 'fa-solid fa-arrows-left-right' },
+  { value: 'reversal',   label: 'Reversões',    icon: 'fa-solid fa-rotate-left' },
 ]
 
 const filtered = computed(() => {
@@ -55,12 +55,12 @@ const filtered = computed(() => {
 
       <AppCard>
         <div class="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
+          <div class="min-w-0">
             <p class="text-sm font-semibold text-zinc-100">Filtrar transações</p>
             <p class="mt-1 text-sm text-zinc-500">Use o campo de busca ou selecione o tipo de operação desejada.</p>
           </div>
-          <div class="grid w-full gap-3 sm:grid-cols-[1.6fr_1fr] lg:w-auto lg:grid-cols-[1.6fr_0.9fr]">
-            <div class="relative">
+          <div class="grid w-full gap-3 grid-cols-1 lg:grid-cols-[1.6fr_0.9fr]">
+            <div class="relative min-w-0">
               <div class="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500">
                 <AppIcon name="search" size="16" stroke-width="2" />
               </div>
@@ -72,19 +72,21 @@ const filtered = computed(() => {
               />
             </div>
 
-            <div class="grid grid-cols-2 gap-2 sm:grid-cols-5">
+            <div class="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
               <button
                 v-for="opt in typeOptions"
                 :key="opt.value"
                 @click="filterType = opt.value"
+                :aria-label="opt.label"
+                :title="opt.label"
                 :class="[
-                  'rounded-2xl border px-3 py-2 text-xs font-medium transition',
+                  'w-full rounded-2xl border px-3 py-3 text-sm font-medium transition min-w-0 flex items-center justify-center gap-2',
                   filterType === opt.value
                     ? 'border-brand bg-brand text-zinc-950'
                     : 'border-zinc-800 bg-zinc-950 text-zinc-400 hover:border-zinc-700 hover:bg-zinc-900 hover:text-zinc-100',
                 ]"
               >
-                {{ opt.label }}
+                <i :class="opt.icon" aria-hidden="true"></i>
               </button>
             </div>
           </div>

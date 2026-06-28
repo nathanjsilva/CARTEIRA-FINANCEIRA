@@ -43,8 +43,8 @@ const recentTransactions = computed(() => walletStore.transactions.slice(0, 5))
     <div class="space-y-6 animate-fade-in">
       <AppHeader title="Dashboard" subtitle="Resumo das suas finanças e transações recentes" />
 
-      <div class="grid gap-5 xl:grid-cols-[1.2fr_0.8fr]">
-        <div class="space-y-5">
+      <div class="grid gap-5 grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] items-start">
+        <div class="space-y-5 min-w-0">
           <BalanceCard
             :balance="walletStore.balance"
             :currency="walletStore.currency"
@@ -102,7 +102,7 @@ const recentTransactions = computed(() => walletStore.transactions.slice(0, 5))
           </AppCard>
         </div>
 
-        <AppCard>
+        <AppCard class="h-full min-h-[22rem]">
           <div class="flex items-center justify-between gap-4">
             <div>
               <p class="text-sm font-semibold text-zinc-100">Ações rápidas</p>
@@ -110,13 +110,13 @@ const recentTransactions = computed(() => walletStore.transactions.slice(0, 5))
             </div>
           </div>
 
-          <div class="mt-6 grid gap-3 sm:grid-cols-1 md:grid-cols-3">
+          <div class="mt-6 grid gap-3 grid-cols-1 md:grid-cols-3">
             <button
               v-for="action in actions"
               :key="action.type"
               @click="openModal(action.type)"
               :class="[
-                'group flex flex-col items-center justify-center gap-3 rounded-3xl border px-4 py-5 text-center transition duration-150',
+                'group flex min-w-0 w-full flex-col items-center justify-center gap-3 rounded-3xl border px-4 py-5 text-center transition duration-150',
                 'border-zinc-800 bg-zinc-950 hover:border-zinc-700 hover:bg-zinc-900/90',
               ]"
             >

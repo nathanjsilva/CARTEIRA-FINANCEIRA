@@ -1,6 +1,9 @@
 <script setup>
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useTransaction } from '@/composables/useTransaction'
+import { useToast } from '@/composables/useToast'
+import { useWalletStore } from '@/stores/wallet'
+import AppModal from '@/components/ui/AppModal.vue'
 import AppIcon from '@/components/ui/AppIcon.vue'
 import AppBadge from '@/components/ui/AppBadge.vue'
 
@@ -12,6 +15,32 @@ const props = defineProps({
 
 const { getConfig, formatDate } = useTransaction()
 const config = computed(() => getConfig(props.transaction.type))
+const walletStore = useWalletStore()
+const toast = useToast()
+const requesting = ref(false)
+const modalOpen = ref(false)
+const reason = ref('')
+
+function openReversalModal() {
+  reason.value = 'user_request'
+  modalOpen.value = true
+}
+
+async function submitReversalRequest() {
+  if (!props.transaction) return
+  requesting.value = true
+  try {
+    const txUuid = props.transaction.uuid || props.transaction.id
+    const txId = props.transaction.id || props.transaction.uuid
+    await walletStore.requestReversal({ transaction_id: txId, original_transaction_uuid: txUuid }, reason.value || 'user_request')
+    toast.success('Reversão solicitada com sucesso')
+    modalOpen.value = false
+  } catch (err) {
+    toast.error(err.response?.data?.message || 'Erro ao solicitar reversão')
+  } finally {
+    requesting.value = false
+  }
+}
 </script>
 
 <template>
@@ -53,6 +82,35 @@ const config = computed(() => getConfig(props.transaction.type))
         {{ config.sign }}{{ formattedAmount }}
       </p>
       <AppBadge :variant="transaction.status" size="xs">{{ transaction.status }}</AppBadge>
+      <button
+        v-if="transaction.type === 'transfer' && transaction.status === 'completed'"
+        @click="openReversalModal"
+        :disabled="requesting"
+        class="mt-2 w-full rounded-xl border border-zinc-800 bg-zinc-950/90 px-3 py-1 text-xs text-zinc-100 hover:border-zinc-700"
+      >
+        <span v-if="!requesting">Solicitar reversão</span>
+        <span v-else>Solicitando...</span>
+      </button>
+
+      <AppModal :show="modalOpen" title="Solicitar Reversão" @close="modalOpen = false">
+        <div class="space-y-3">
+          <p class="text-sm text-zinc-400">Informe o motivo da solicitação (opcional)</p>
+          <label class="text-sm text-zinc-400">Selecione o motivo</label>
+          <select v-model="reason" class="w-full rounded-lg bg-zinc-950/90 border border-zinc-800 p-3 text-sm text-zinc-100">
+            <option value="user_request">Solicitação do usuário</option>
+            <option value="system_error">Erro do sistema</option>
+            <option value="fraud_detection">Suspeita de fraude</option>
+            <option value="compliance">Conformidade</option>
+          </select>
+          <div class="flex justify-end gap-2">
+            <button @click="modalOpen = false" class="rounded-xl border border-zinc-800 bg-zinc-900 px-4 py-2 text-sm">Cancelar</button>
+            <button @click="submitReversalRequest" :disabled="requesting" class="rounded-xl border border-brand bg-brand px-4 py-2 text-sm text-zinc-950">
+              <span v-if="!requesting">Enviar</span>
+              <span v-else>Enviando...</span>
+            </button>
+          </div>
+        </div>
+      </AppModal>
     </div>
   </div>
 </template>
