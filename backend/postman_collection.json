@@ -195,6 +195,46 @@
 			"description": "Operações da carteira: saldo, depósito, saque e histórico."
 		},
 		{
+			"name": "Usuários",
+			"item": [
+				{
+					"name": "Listar Usuários",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    if (response.success && response.data.users.length > 0) {",
+									"        pm.environment.set('recipient_id', response.data.users[0].id);",
+									"        console.log('Primeiro destinatário salvo:', response.data.users[0]);",
+									"    }",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/users",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "users"]
+						},
+						"description": "Lista todos os usuários cadastrados (exceto o autenticado) com o UUID da carteira BRL. Usado para popular o seletor de destinatário na transferência.\n\nCada item retorna:\n- id: identificador numérico (usar como recipient_id na transferência)\n- name: nome do usuário\n- wallet_uuid: UUID da carteira BRL\n\nO primeiro destinatário encontrado é salvo automaticamente na variável {{recipient_id}}."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints de listagem de usuários. Use para descobrir os destinatários disponíveis antes de realizar uma transferência."
+		},
+		{
 			"name": "Transferências",
 			"item": [
 				{

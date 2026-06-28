@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Infrastructure\Http\Controllers\Api\V1\AuthController;
 use App\Infrastructure\Http\Controllers\Api\V1\TransactionReceiptController;
+use App\Infrastructure\Http\Controllers\Api\V1\UserController;
 use App\Infrastructure\Http\Controllers\Api\V1\WalletController;
 use App\Infrastructure\Http\Controllers\Api\V1\TransactionController;
 
@@ -21,6 +22,8 @@ Route::prefix('v1')->group(function () {
             Route::post('logout', [AuthController::class, 'logout']);
             Route::get('me',      [AuthController::class, 'me']);
         });
+
+        Route::get('users', [UserController::class, 'index']);
 
         Route::prefix('wallet')->middleware('throttle:60,1')->group(function () {
             Route::get('balance',   [WalletController::class, 'balance']);

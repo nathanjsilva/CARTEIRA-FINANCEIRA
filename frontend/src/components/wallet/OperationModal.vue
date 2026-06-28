@@ -1,9 +1,10 @@
 <script setup>
-import { reactive, computed } from 'vue'
+import { reactive, computed, watch } from 'vue'
 import { useWalletStore } from '@/stores/wallet'
 import { useToast } from '@/composables/useToast'
 import AppModal from '@/components/ui/AppModal.vue'
 import AppInput from '@/components/ui/AppInput.vue'
+import AppSelect from '@/components/ui/AppSelect.vue'
 import AppButton from '@/components/ui/AppButton.vue'
 
 const props = defineProps({
@@ -30,6 +31,20 @@ const titles = {
 }
 
 const modalTitle = computed(() => titles[props.type] ?? 'Operação')
+
+const recipientOptions = computed(() =>
+  walletStore.users.map(u => ({
+    value: String(u.id),
+    label: `${u.wallet_uuid} — ${u.name}`,
+  }))
+)
+
+watch(
+  () => [props.show, props.type],
+  ([show, type]) => {
+    if (show && type === 'transfer') walletStore.fetchUsers()
+  },
+)
 
 function resetForm() {
   form.amount      = ''
@@ -62,7 +77,7 @@ async function handleSubmit() {
       toast.success('Saque realizado com sucesso!')
     } else {
       if (!form.recipientId) {
-        form.error = 'Informe o ID do destinatário.'
+        form.error = 'Selecione um destinatário.'
         return
       }
       await walletStore.transfer(form.recipientId, amount, form.description)
@@ -81,13 +96,14 @@ async function handleSubmit() {
 <template>
   <AppModal :show="show" :title="modalTitle" @close="handleClose">
     <form @submit.prevent="handleSubmit" class="space-y-4" novalidate>
-      <AppInput
+      <AppSelect
         v-if="type === 'transfer'"
         v-model="form.recipientId"
-        label="ID do Destinatário"
-        placeholder="ID numérico do usuário"
+        label="Destinatário"
+        placeholder="Selecione o destinatário..."
+        :options="recipientOptions"
         :required="true"
-        hint="Informe o identificador numérico da conta de destino"
+        hint="Selecione a conta de destino da transferência"
       />
 
       <AppInput

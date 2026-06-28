@@ -6,10 +6,11 @@
 2. [Usando o frontend](#2-usando-o-frontend)
 3. [API — Autenticação](#3-api--autenticação)
 4. [API — Carteira](#4-api--carteira)
-5. [API — Transferência](#5-api--transferência)
-6. [API — Reversão](#6-api--reversão)
-7. [API — Extrato PDF](#7-api--extrato-pdf)
-8. [Códigos de erro](#8-códigos-de-erro)
+5. [API — Usuários](#5-api--usuários)
+6. [API — Transferência](#6-api--transferência)
+7. [API — Reversão](#7-api--reversão)
+8. [API — Extrato PDF](#8-api--extrato-pdf)
+9. [Códigos de erro](#9-códigos-de-erro)
 
 ---
 
@@ -133,7 +134,7 @@ A tela principal exibe:
 **Realizar uma operação:**
 1. Clique em "Depositar", "Sacar" ou "Transferir"
 2. Preencha o valor e, opcionalmente, uma descrição
-3. Para transferência, informe também o ID do destinatário
+3. Para transferência, selecione o destinatário no campo de seleção — a lista é carregada automaticamente com todos os usuários cadastrados, exibindo o UUID da conta e o nome de cada um
 4. Confirme — o saldo é atualizado automaticamente
 
 ### Histórico de transações (`/transactions`)
@@ -503,7 +504,51 @@ Authorization: Bearer {token}
 
 ---
 
-## 5. API — Transferência
+## 5. API — Usuários
+
+---
+
+### `GET /users` — Listar usuários disponíveis para transferência
+
+Retorna todos os usuários cadastrados (exceto o usuário autenticado) com o UUID da carteira BRL. Usado pelo frontend para popular o seletor de destinatário na tela de transferência.
+
+**Request**
+
+```http
+GET http://localhost:8000/api/v1/users
+Authorization: Bearer {token}
+```
+
+**Response 200 — Sucesso**
+
+```json
+{
+  "success": true,
+  "data": {
+    "users": [
+      {
+        "id": 2,
+        "name": "Maria Souza",
+        "wallet_uuid": "7c9e6679-7425-40de-944b-e07fc1f90ae7"
+      },
+      {
+        "id": 3,
+        "name": "Carlos Lima",
+        "wallet_uuid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      }
+    ]
+  }
+}
+```
+
+**Observações:**
+- O campo `id` é o identificador numérico a ser usado como `recipient_id` na transferência
+- Usuários sem carteira BRL ativa são excluídos da lista
+- A lista é ordenada alfabeticamente pelo nome
+
+---
+
+## 6. API — Transferência
 
 ---
 
@@ -586,7 +631,7 @@ Content-Type: application/json
 
 ---
 
-## 6. API — Reversão
+## 7. API — Reversão
 
 O fluxo de reversão tem três etapas: **solicitar**, **aprovar** e **rejeitar**. Apenas transferências concluídas podem ser revertidas.
 
@@ -729,7 +774,7 @@ Solicitação criada
 
 ---
 
-## 7. API — Extrato PDF
+## 8. API — Extrato PDF
 
 ---
 
@@ -787,7 +832,7 @@ curl -X GET http://localhost:8000/api/v1/transactions/{uuid}/receipt \
 
 ---
 
-## 8. Códigos de erro
+## 9. Códigos de erro
 
 | Código | Significado | Quando ocorre |
 |--------|-------------|---------------|
