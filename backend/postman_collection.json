@@ -2,7 +2,7 @@
 	"info": {
 		"_postman_id": "carteira-financeira-api",
 		"name": "Carteira Financeira API",
-		"description": "API para sistema de carteira financeira com operações de depósito, transferência e reversão de transações",
+		"description": "API para sistema de carteira financeira com operações de depósito, saque, transferência e reversão de transações.\n\nBase URL: http://localhost:8000\nTodos os endpoints protegidos exigem o header: Authorization: Bearer {{token}}",
 		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
 	},
 	"item": [
@@ -14,31 +14,19 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
 						],
 						"body": {
 							"mode": "raw",
 							"raw": "{\n    \"name\": \"João Silva\",\n    \"email\": \"joao@example.com\",\n    \"password\": \"password123\",\n    \"password_confirmation\": \"password123\"\n}"
 						},
 						"url": {
-							"raw": "{{base_url}}/api/auth/register",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"register"
-							]
+							"raw": "{{base_url}}/api/v1/auth/register",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "register"]
 						},
-						"description": "Registra um novo usuário no sistema"
+						"description": "Cria um novo usuário e uma carteira BRL automaticamente. Retorna o token de acesso."
 					},
 					"response": []
 				},
@@ -65,31 +53,19 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
 						],
 						"body": {
 							"mode": "raw",
 							"raw": "{\n    \"email\": \"joao@example.com\",\n    \"password\": \"password123\"\n}"
 						},
 						"url": {
-							"raw": "{{base_url}}/api/auth/login",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"login"
-							]
+							"raw": "{{base_url}}/api/v1/auth/login",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "login"]
 						},
-						"description": "Faz login e retorna o token de autenticação"
+						"description": "Autentica o usuário e retorna o token Bearer. O token é salvo automaticamente na variável {{token}}."
 					},
 					"response": []
 				},
@@ -98,27 +74,15 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Accept", "value": "application/json" }
 						],
 						"url": {
-							"raw": "{{base_url}}/api/auth/logout",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"logout"
-							]
+							"raw": "{{base_url}}/api/v1/auth/logout",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "logout"]
 						},
-						"description": "Faz logout e invalida o token"
+						"description": "Invalida o token do usuário autenticado."
 					},
 					"response": []
 				},
@@ -127,32 +91,20 @@
 					"request": {
 						"method": "GET",
 						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Accept", "value": "application/json" }
 						],
 						"url": {
-							"raw": "{{base_url}}/api/auth/me",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"auth",
-								"me"
-							]
+							"raw": "{{base_url}}/api/v1/auth/me",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "me"]
 						},
-						"description": "Retorna os dados do usuário autenticado"
+						"description": "Retorna os dados do usuário autenticado e sua carteira."
 					},
 					"response": []
 				}
 			],
-			"description": "Endpoints de autenticação"
+			"description": "Endpoints de autenticação. Faça login primeiro para obter o token."
 		},
 		{
 			"name": "Carteira",
@@ -162,27 +114,15 @@
 					"request": {
 						"method": "GET",
 						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Accept", "value": "application/json" }
 						],
 						"url": {
-							"raw": "{{base_url}}/api/wallet/balance",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"wallet",
-								"balance"
-							]
+							"raw": "{{base_url}}/api/v1/wallet/balance",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "wallet", "balance"]
 						},
-						"description": "Consulta o saldo da carteira do usuário"
+						"description": "Retorna o saldo atual da carteira do usuário autenticado."
 					},
 					"response": []
 				},
@@ -191,35 +131,20 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
 						],
 						"body": {
 							"mode": "raw",
 							"raw": "{\n    \"amount\": 100.50,\n    \"description\": \"Depósito inicial\"\n}"
 						},
 						"url": {
-							"raw": "{{base_url}}/api/wallet/deposit",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"wallet",
-								"deposit"
-							]
+							"raw": "{{base_url}}/api/v1/wallet/deposit",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "wallet", "deposit"]
 						},
-						"description": "Realiza um depósito na carteira"
+						"description": "Deposita um valor na carteira. O campo description é opcional."
 					},
 					"response": []
 				},
@@ -228,72 +153,20 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
 						],
 						"body": {
 							"mode": "raw",
 							"raw": "{\n    \"amount\": 50.00,\n    \"description\": \"Saque para pagamento\"\n}"
 						},
 						"url": {
-							"raw": "{{base_url}}/api/wallet/withdraw",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"wallet",
-								"withdraw"
-							]
+							"raw": "{{base_url}}/api/v1/wallet/withdraw",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "wallet", "withdraw"]
 						},
-						"description": "Realiza um saque da carteira"
-					},
-					"response": []
-				},
-				{
-					"name": "Transferência",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"to_user_id\": 2,\n    \"amount\": 25.75,\n    \"description\": \"Transferência para amigo\"\n}"
-						},
-						"url": {
-							"raw": "{{base_url}}/api/wallet/transfer",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"wallet",
-								"transfer"
-							]
-						},
-						"description": "Realiza uma transferência para outro usuário"
+						"description": "Saca um valor da carteira. Retorna erro 422 se saldo insuficiente."
 					},
 					"response": []
 				},
@@ -302,45 +175,55 @@
 					"request": {
 						"method": "GET",
 						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Accept", "value": "application/json" }
 						],
 						"url": {
-							"raw": "{{base_url}}/api/wallet/history?page=1&per_page=10",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"wallet",
-								"history"
-							],
+							"raw": "{{base_url}}/api/v1/wallet/history?page=1&per_page=10",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "wallet", "history"],
 							"query": [
-								{
-									"key": "page",
-									"value": "1"
-								},
-								{
-									"key": "per_page",
-									"value": "10"
-								}
+								{ "key": "page", "value": "1" },
+								{ "key": "per_page", "value": "10" }
 							]
 						},
-						"description": "Consulta o histórico de transações da carteira"
+						"description": "Retorna o histórico paginado de transações da carteira."
 					},
 					"response": []
 				}
 			],
-			"description": "Endpoints de operações da carteira"
+			"description": "Operações da carteira: saldo, depósito, saque e histórico."
 		},
 		{
-			"name": "Transações",
+			"name": "Transferências",
+			"item": [
+				{
+					"name": "Transferência",
+					"request": {
+						"method": "POST",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"recipient_id\": 2,\n    \"amount\": 25.75,\n    \"description\": \"Transferência para amigo\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/transactions/transfer",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "transactions", "transfer"]
+						},
+						"description": "Transfere um valor para outro usuário. Use o ID do usuário destinatário no campo recipient_id. Não é possível transferir para si mesmo."
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoint de transferência entre usuários."
+		},
+		{
+			"name": "Reversões",
 			"item": [
 				{
 					"name": "Solicitar Reversão",
@@ -349,11 +232,11 @@
 							"listen": "test",
 							"script": {
 								"exec": [
-									"if (pm.response.code === 200) {",
+									"if (pm.response.code === 201) {",
 									"    const response = pm.response.json();",
-									"    if (response.success && response.data.reversal_id) {",
-									"        pm.environment.set('reversal_id', response.data.reversal_id);",
-									"        console.log('Reversal ID salvo:', response.data.reversal_id);",
+									"    if (response.success && response.data && response.data.id) {",
+									"        pm.environment.set('reversal_id', response.data.id);",
+									"        console.log('Reversal ID salvo:', response.data.id);",
 									"    }",
 									"}"
 								],
@@ -364,36 +247,20 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n    \"transaction_id\": 1,\n    \"reason\": \"Erro no valor\",\n    \"description\": \"O valor da transação estava incorreto\"\n}"
+							"raw": "{\n    \"transaction_id\": \"UUID-DA-TRANSACAO-AQUI\",\n    \"reason\": \"user_request\",\n    \"description\": \"Solicitação de estorno pelo usuário\"\n}"
 						},
 						"url": {
-							"raw": "{{base_url}}/api/transactions/reversal/request",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"transactions",
-								"reversal",
-								"request"
-							]
+							"raw": "{{base_url}}/api/v1/transactions/reversal/request",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "transactions", "reversal", "request"]
 						},
-						"description": "Solicita a reversão de uma transação"
+						"description": "Solicita a reversão de uma transação.\n\nCampos:\n- transaction_id: UUID da transação (obrigatório)\n- reason: motivo da reversão (obrigatório) — valores aceitos: user_request, system_error, fraud_detection, compliance\n- description: descrição adicional (opcional)"
 					},
 					"response": []
 				},
@@ -402,37 +269,20 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
 						],
 						"body": {
 							"mode": "raw",
 							"raw": "{\n    \"description\": \"Reversão aprovada após análise\"\n}"
 						},
 						"url": {
-							"raw": "{{base_url}}/api/transactions/reversal/{{reversal_id}}/approve",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"transactions",
-								"reversal",
-								"{{reversal_id}}",
-								"approve"
-							]
+							"raw": "{{base_url}}/api/v1/transactions/reversal/{{reversal_id}}/approve",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "transactions", "reversal", "{{reversal_id}}", "approve"]
 						},
-						"description": "Aprova uma solicitação de reversão"
+						"description": "Aprova uma reversão pendente. Substitua {{reversal_id}} pelo ID numérico da reversão."
 					},
 					"response": []
 				},
@@ -441,140 +291,82 @@
 					"request": {
 						"method": "POST",
 						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Content-Type", "value": "application/json" },
+							{ "key": "Accept", "value": "application/json" }
 						],
 						"body": {
 							"mode": "raw",
 							"raw": "{\n    \"description\": \"Reversão rejeitada - transação válida\"\n}"
 						},
 						"url": {
-							"raw": "{{base_url}}/api/transactions/reversal/{{reversal_id}}/reject",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"transactions",
-								"reversal",
-								"{{reversal_id}}",
-								"reject"
-							]
+							"raw": "{{base_url}}/api/v1/transactions/reversal/{{reversal_id}}/reject",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "transactions", "reversal", "{{reversal_id}}", "reject"]
 						},
-						"description": "Rejeita uma solicitação de reversão"
-					},
-					"response": []
-				},
-				{
-					"name": "Reversões Pendentes",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/api/transactions/reversals/pending",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"transactions",
-								"reversals",
-								"pending"
-							]
-						},
-						"description": "Lista as reversões pendentes de aprovação"
-					},
-					"response": []
-				},
-				{
-					"name": "Histórico de Reversões",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer {{token}}"
-							},
-							{
-								"key": "Accept",
-								"value": "application/json"
-							}
-						],
-						"url": {
-							"raw": "{{base_url}}/api/transactions/reversals/history?page=1&per_page=10",
-							"host": [
-								"{{base_url}}"
-							],
-							"path": [
-								"api",
-								"transactions",
-								"reversals",
-								"history"
-							],
-							"query": [
-								{
-									"key": "page",
-									"value": "1"
-								},
-								{
-									"key": "per_page",
-									"value": "10"
-								}
-							]
-						},
-						"description": "Consulta o histórico de reversões"
+						"description": "Rejeita uma reversão pendente. Substitua {{reversal_id}} pelo ID numérico da reversão."
 					},
 					"response": []
 				}
 			],
-			"description": "Endpoints de gerenciamento de transações e reversões"
+			"description": "Endpoints de reversão/estorno de transações.\n\nFluxo: solicitar reversão → aguardar aprovação (manual ou automática via job) → aprovada ou rejeitada."
+		},
+		{
+			"name": "Comprovantes",
+			"item": [
+				{
+					"name": "Download Comprovante PDF",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Authorization", "value": "Bearer {{token}}" },
+							{ "key": "Accept", "value": "application/pdf" }
+						],
+						"url": {
+							"raw": "{{base_url}}/api/v1/transactions/{{transaction_uuid}}/receipt",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "transactions", "{{transaction_uuid}}", "receipt"]
+						},
+						"description": "Faz o download do comprovante em PDF de uma transação. Substitua {{transaction_uuid}} pelo UUID da transação obtido no histórico.\n\nO arquivo PDF será retornado diretamente. No Postman, clique em 'Save to a file' para salvar o PDF."
+					},
+					"response": []
+				}
+			],
+			"description": "Download de comprovantes em PDF."
+		},
+		{
+			"name": "Sistema",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [
+							{ "key": "Accept", "value": "application/json" }
+						],
+						"url": {
+							"raw": "{{base_url}}/api/health",
+							"host": ["{{base_url}}"],
+							"path": ["api", "health"]
+						},
+						"description": "Verifica se a API está no ar. Não requer autenticação."
+					},
+					"response": []
+				}
+			]
 		}
 	],
 	"event": [
 		{
 			"listen": "prerequest",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					""
-				]
-			}
+			"script": { "type": "text/javascript", "exec": [""] }
 		},
 		{
 			"listen": "test",
-			"script": {
-				"type": "text/javascript",
-				"exec": [
-					""
-				]
-			}
+			"script": { "type": "text/javascript", "exec": [""] }
 		}
 	],
 	"variable": [
-		{
-			"key": "base_url",
-			"value": "http://localhost:8000",
-			"type": "string"
-		}
+		{ "key": "base_url", "value": "http://localhost:8000", "type": "string" }
 	]
 }
-

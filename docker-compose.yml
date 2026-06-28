@@ -8,16 +8,23 @@ services:
     restart: unless-stopped
     working_dir: /var/www/html
     environment:
-      - APP_ENV=production
+      - APP_ENV=local
+      - DB_CONNECTION=mysql
       - DB_HOST=db
+      - DB_PORT=3306
       - DB_DATABASE=carteira_financeira
       - DB_USERNAME=nathan_carteira
       - DB_PASSWORD=1234
       - REDIS_HOST=redis
-      - FRONTEND_URL=http://localhost:5173
+      - REDIS_PORT=6379
+      - CACHE_STORE=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
+      - FRONTEND_URL=http://localhost:5173,http://127.0.0.1:5173
     volumes:
       - ./backend:/var/www/html
       - ./backend/docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+      - vendor_data:/var/www/html/vendor
     depends_on:
       - db
       - redis
@@ -32,16 +39,23 @@ services:
     restart: unless-stopped
     working_dir: /var/www/html
     environment:
-      - APP_ENV=production
+      - APP_ENV=local
+      - DB_CONNECTION=mysql
       - DB_HOST=db
+      - DB_PORT=3306
       - DB_DATABASE=carteira_financeira
       - DB_USERNAME=nathan_carteira
       - DB_PASSWORD=1234
       - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CACHE_STORE=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
       - FRONTEND_URL=http://localhost:5173,http://127.0.0.1:5173
     volumes:
       - ./backend:/var/www/html
       - ./backend/docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+      - vendor_data:/var/www/html/vendor
     depends_on:
       - db
       - redis
@@ -57,16 +71,23 @@ services:
     restart: unless-stopped
     working_dir: /var/www/html
     environment:
-      - APP_ENV=production
+      - APP_ENV=local
+      - DB_CONNECTION=mysql
       - DB_HOST=db
+      - DB_PORT=3306
       - DB_DATABASE=carteira_financeira
       - DB_USERNAME=nathan_carteira
       - DB_PASSWORD=1234
       - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - CACHE_STORE=redis
+      - SESSION_DRIVER=redis
+      - QUEUE_CONNECTION=redis
       - FRONTEND_URL=http://localhost:5173,http://127.0.0.1:5173
     volumes:
       - ./backend:/var/www/html
       - ./backend/docker/php/local.ini:/usr/local/etc/php/conf.d/local.ini
+      - vendor_data:/var/www/html/vendor
     depends_on:
       - db
       - redis
@@ -149,6 +170,7 @@ services:
 
 volumes:
   dbdata:
+  vendor_data:
 
 networks:
   app-network:

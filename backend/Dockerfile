@@ -39,16 +39,5 @@ RUN apk add --no-cache \
 
 COPY --from=composer:latest /usr/bin/composer /usr/local/bin/composer
 
-COPY . /var/www/html
-
-RUN composer install --no-dev --optimize-autoloader --no-interaction
-
-RUN adduser -D -g 'www' www \
-    && chown -R www:www /var/www/html \
-    && chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
-
-USER www
-
 EXPOSE 9000
 CMD ["php-fpm"]
-
