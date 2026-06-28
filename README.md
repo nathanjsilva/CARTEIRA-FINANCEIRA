@@ -113,10 +113,13 @@ Abra o navegador e acesse: **http://localhost:5173**
 
 ## Como Usar no Navegador
 
+> **Acesso em produção:** http://137.131.133.133:5173
+> Para rodar localmente, substitua `http://137.131.133.133:5173` por `http://localhost:5173` nos links abaixo.
+
 ### Criando sua conta
 
-1. Acesse **http://localhost:5173**
-2. Clique em **"Criar conta"** ou vá para http://localhost:5173/register
+1. Acesse **http://137.131.133.133:5173**
+2. Clique em **"Criar conta"** ou vá para http://137.131.133.133:5173/register
 3. Preencha os campos:
    - **Nome completo:** seu nome
    - **E-mail:** um e-mail válido (será usado para login)
@@ -130,7 +133,7 @@ Abra o navegador e acesse: **http://localhost:5173**
 
 ### Fazendo login
 
-1. Vá para http://localhost:5173/login
+1. Vá para http://137.131.133.133:5173/login
 2. Digite seu **e-mail** e **senha**
 3. Clique em **"Entrar"**
 4. Você será redirecionado para o Dashboard
@@ -177,7 +180,7 @@ O Dashboard é a página central do sistema. Nela você encontra:
 
 ### Histórico de Transações
 
-Acesse clicando em **"Ver todas"** no dashboard ou indo para http://localhost:5173/transactions
+Acesse clicando em **"Ver todas"** no dashboard ou indo para http://137.131.133.133:5173/transactions
 
 **O que você encontra nessa página:**
 
