@@ -1,85 +1,17 @@
-<template>
-  <div class="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
-    <div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-md">
-      <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">Criar Conta</h1>
-        <p class="text-gray-500 mt-2">Cadastre-se gratuitamente</p>
-      </div>
-
-      <form @submit.prevent="onSubmit" class="space-y-5">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-          <input
-            v-model="name"
-            type="text"
-            required
-            placeholder="Seu nome completo"
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-          />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">E-mail</label>
-          <input
-            v-model="email"
-            type="email"
-            required
-            placeholder="seu@email.com"
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-          />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
-          <input
-            v-model="password"
-            type="password"
-            required
-            minlength="8"
-            placeholder="Mínimo 8 caracteres"
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-          />
-        </div>
-
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Confirmar Senha</label>
-          <input
-            v-model="passwordConfirmation"
-            type="password"
-            required
-            placeholder="Repita a senha"
-            class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-          />
-        </div>
-
-        <div v-if="error" class="bg-red-50 text-red-600 text-sm px-4 py-3 rounded-lg">
-          {{ error }}
-        </div>
-
-        <button
-          type="submit"
-          :disabled="loading"
-          class="w-full bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-semibold py-3 rounded-lg transition"
-        >
-          {{ loading ? 'Criando conta...' : 'Criar Conta' }}
-        </button>
-      </form>
-
-      <p class="text-center text-sm text-gray-500 mt-6">
-        Já tem conta?
-        <router-link to="/login" class="text-blue-600 hover:underline font-medium">Entrar</router-link>
-      </p>
-    </div>
-  </div>
-</template>
-
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import AppButton from '@/components/ui/AppButton.vue'
+import AppInput  from '@/components/ui/AppInput.vue'
+import AppIcon   from '@/components/ui/AppIcon.vue'
+import AppFormCard from '@/components/ui/AppFormCard.vue'
+import AppAlert from '@/components/ui/AppAlert.vue'
+import AuthLayout from '@/components/layout/AuthLayout.vue'
 
-const router               = useRouter()
-const authStore            = useAuthStore()
+const router    = useRouter()
+const authStore = useAuthStore()
+
 const name                 = ref('')
 const email                = ref('')
 const password             = ref('')
@@ -87,11 +19,12 @@ const passwordConfirmation = ref('')
 const loading              = ref(false)
 const error                = ref('')
 
-const onSubmit = async () => {
+async function onSubmit() {
   if (password.value !== passwordConfirmation.value) {
-    error.value = 'As senhas não coincidem'
+    error.value = 'As senhas não coincidem.'
     return
   }
+
   loading.value = true
   error.value   = ''
   try {
@@ -101,9 +34,72 @@ const onSubmit = async () => {
     const errors = err.response?.data?.errors
     error.value  = errors
       ? Object.values(errors).flat().join(', ')
-      : err.response?.data?.message || 'Falha no registro'
+      : err.response?.data?.message || 'Falha no cadastro'
   } finally {
     loading.value = false
   }
 }
 </script>
+
+<template>
+  <AuthLayout>
+    <AppFormCard title="Criar sua conta" description="Registre-se e comece a controlar seu dinheiro com transparência.">
+      <form @submit.prevent="onSubmit" class="space-y-5" novalidate>
+        <AppInput
+          v-model="name"
+          label="Nome completo"
+          placeholder="Seu nome"
+          :required="true"
+          :disabled="loading"
+        />
+
+        <AppInput
+          v-model="email"
+          type="email"
+          label="E-mail"
+          placeholder="seu@email.com"
+          :required="true"
+          :disabled="loading"
+        />
+
+        <AppInput
+          v-model="password"
+          type="password"
+          label="Senha"
+          placeholder="Mínimo 8 caracteres"
+          :required="true"
+          :disabled="loading"
+          hint="Use letras, números e símbolos para mais segurança"
+        />
+
+        <AppInput
+          v-model="passwordConfirmation"
+          type="password"
+          label="Confirmar senha"
+          placeholder="Repita a senha"
+          :required="true"
+          :disabled="loading"
+        />
+
+        <AppAlert v-if="error" variant="error" :message="error" />
+
+        <AppButton
+          type="submit"
+          variant="primary"
+          size="lg"
+          :full="true"
+          :loading="loading"
+        >
+          {{ loading ? 'Criando conta...' : 'Criar Conta' }}
+        </AppButton>
+
+        <p class="text-center text-sm text-zinc-500">
+          Já possui conta?
+          <RouterLink to="/login" class="text-brand font-semibold hover:text-[#f4b400]">
+            Entrar
+          </RouterLink>
+        </p>
+      </form>
+    </AppFormCard>
+  </AuthLayout>
+</template>
